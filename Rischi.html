@@ -1,0 +1,910 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Safety Competence Center - Registro Lavorazioni</title>
+    <style>
+        body { font-family: 'Arial', sans-serif; margin: 0; padding: 0; background-color: #f4f4f4; }
+        .container { width: 95%; max-width: 1200px; margin: 20px auto; background-color: #fff; padding: 20px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
+        h1 { color: #004d99; text-align: center; margin-bottom: 5px; } /* Titolo principale */
+        h2 { color: #666; text-align: center; margin-top: 0; margin-bottom: 20px; font-size: 1.2em; font-weight: normal; } /* Sottotitolo */
+        .card { background-color: #e9f0f6; border-left: 5px solid #004d99; margin-bottom: 15px; padding: 15px; border-radius: 4px; }
+        .card-header { font-size: 1.2em; font-weight: bold; color: #333; cursor: pointer; display: flex; justify-content: space-between; align-items: center; }
+        .card-header span { color: #004d99; margin-right: 10px; }
+        .card-content { display: none; margin-top: 10px; padding-top: 10px; border-top: 1px solid #cce0ff; }
+        .detail-section { margin-bottom: 15px; }
+        .detail-section h4 { color: #004d99; border-bottom: 2px solid #004d99; padding-bottom: 5px; margin-bottom: 5px; font-size: 1em; }
+        .detail-list, .detail-text { margin: 0; padding-left: 20px; }
+        .detail-list li, .detail-text { margin-bottom: 5px; font-size: 0.9em; line-height: 1.4; }
+        .risk { color: #a00; }
+        .non-conformity { color: #c80; }
+        .prevention { color: #080; }
+        .arrow { transition: transform 0.3s; }
+        .open .arrow { transform: rotate(90deg); }
+ 
+        /* Stili per la visualizzazione dinamica */
+        #search-input { width: 100%; padding: 10px; margin-bottom: 20px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; font-size: 1em; }
+        #lavorazioni-list { list-style: none; padding: 0; }
+        #lavorazioni-list li { margin-bottom: 10px; }
+    </style>
+</head>
+<body>
+   <div onclick="goExternalHome()" 
+       style="position:absolute; left:20px; top:10px; cursor:pointer;">
+    <svg xmlns="http://www.w3.org/2000/svg" width="50" height="50" fill="black" viewBox="0 0 24 24">
+      <path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/>
+    </svg>
+  </div>
+    <div class="container">
+        <h1>Safety Competence Center</h1>
+        <h2>Registro Dettaglio Lavorazioni (1-110)</h2>
+        <input type="text" id="search-input" placeholder="Cerca per titolo, rischio, o non conformità...">
+ 
+        <ul id="lavorazioni-list">
+            </ul>
+    </div>
+ 
+    <script>
+        // =====================================================================
+        // BLOCCO DATI 1/3: Lavorazioni 1-44 e 51-56
+        // =====================================================================
+        const lavorazioni_1_44_51_56 = {
+            "1": {
+                titolo: "SCAVI E SBANCAMENTI",
+                A: "Rimozione di terreno o materiali mediante mezzi meccanici o manuali per realizzare trincee, fondazioni, posa tubi o opere civili.",
+                B: "Seppellimento per franamento o cedimento pareti; Investimento da mezzi d’opera; Caduta dall’alto in scavi profondi; Elettrocuzione per contatto con sottoservizi; Atmosfere pericolose (anossia, gas); Rumore, vibrazioni, polveri.",
+                C: "Mancata verifica stabilità pareti (Art. 118–119); Assenza protezioni anticaduta (Art. 122); Mancato rilievo sottoservizi (Art. 96); Mezzi non idonei o non manutenuti (Art. 71); Mancanza segnaletica e viabilità interna (Art. 163).",
+                D: "Obblighi relativi alla stabilità degli scavi, prevenzione cadute, verifica preliminare interferenze, utilizzo attrezzature sicure e corretta organizzazione del cantiere."
+            },
+            "2": {
+                titolo: "LAVORI IN QUOTA",
+                A: "Attività svolte sopra i 2 m di altezza con rischio di caduta, usando scale, piattaforme, trabattelli, linee vita o superfici sopraelevate.",
+                B: "Caduta dall’alto; Caduta di oggetti; Crollo strutture provvisorie; Perdita equilibrio, scivolamento; Fattori meteo avversi.",
+                C: "Mancanza sistemi anticaduta (Art. 111–115); Uso di scale non idonee (Art. 113); Mancata formazione addetti (Art. 37, 77); Assenza parapetti o protezioni (Art. 122).",
+                D: "Norme sull’uso corretto delle attrezzature per lavori in quota e obblighi di prevenzione caduta mediante sistemi collettivi e DPI."
+            },
+            "3": {
+                titolo: "MONTAGGIO / SMONTAGGIO / TRASFORMAZIONE PONTEGGI",
+                A: "Montaggio, modifica o smontaggio di ponteggi metallici fissi o strutture provvisorie per l’accesso in quota.",
+                B: "Caduta operatori durante il montaggio; Cedimento ponteggio; Caduta materiali dall’alto; Errori nel montaggio degli ancoraggi; Elettrocuzione per vicinanza linee elettriche.",
+                C: "Montaggio non conforme a PIMUS (Art. 134); Personale non formato o non abilitato (Art. 136); Mancata verifica stabilità e ancoraggi (Art. 112, 125); Ponteggio non collaudato (Art. 131).",
+                D: "Obbligo di PIMUS, formazione specifica, montaggio secondo schema autorizzato, ancoraggio e collaudo prima dell’uso."
+            },
+            "4": {
+                titolo: "USO DI PLE / PIATTAFORME AEREE",
+                A: "Utilizzo di piattaforme elevabili mobili (cestelli, ragni, verticali) per accesso in quota.",
+                B: "Ribaltamento; Caduta dall’alto; Collisioni con strutture; Schiacciamento arti; Intralcio da vento o meteo avverso.",
+                C: "Operatori non abilitati (Art. 73); Mancata ispezione giornaliera/periodica (Art. 71); Mancato utilizzo DPI imbracatura (Art. 77); Mancata valutazione suolo/cedimento (Art. 96).",
+                D: "Obbligo di formazione specifica, utilizzo DPI, verifica attrezzature, idoneità del terreno e rispetto condizioni meteo."
+            },
+            "5": {
+                titolo: "SALDATURA / TAGLIO (LAVORI A CALDO)",
+                A: "Operazioni di saldatura, brasatura, taglio termico o molatura che generano scintille, calore o fiamma libera.",
+                B: "Incendi ed esplosioni; Ustioni; Esposizione a fumi metallici; Radiationi UV/IR; Proiezione di particelle.",
+                C: "Mancata autorizzazione lavori a caldo (Art. 80–82); Assenza DPI adeguati (Art. 77); Mancata ventilazione (Art. 225); Assenza misure antincendio (Art. 46).",
+                D: "Obblighi relativi alla prevenzione incendi, sicurezza attrezzature di saldatura, DPI specifici e gestione esposizione agenti chimici."
+            },
+            "6": {
+                titolo: "PREFABBRICAZIONE TUBAZIONI (PIPING SHOP)",
+                A: "Taglio, preparazione, saldatura e assemblaggio tubazioni in officina.",
+                B: "Ustioni e incendi; Rumore e vibrazioni; Schiacciamento materiali; Esposizione fumi di saldatura; Tagli e abrasioni.",
+                C: "Mancanza protezioni macchine (Art. 70–71); Ambienti non aerati (Art. 225); Errata movimentazione materiali (Art. 68–69); DPI non adeguati (Art. 77).",
+                D: "Norme su uso sicuro macchine, manipolazione materiali, esposizione chimica, DPI e protezione incendi."
+            },
+            "7": {
+                titolo: "MONTAGGIO TUBAZIONI (PIPING IN CAMPO)",
+                A: "Installazione e connessione di tubazioni in impianto, comprese saldature e supportazioni.",
+                B: "Schiacciamento durante posa; Scintille in area ATEX; Cadute in quota; Movimentazione carichi pesanti; Contatto prodotti residui.",
+                C: "Mancata verifica atmosfera (Art. 80–82); Attrezzature non certificate in ATEX (Art. 70); Supporti non idonei (Art. 96); Mancanza formazione specifica (Art. 37).",
+                D: "Norme su sicurezza impiantistica, atmosfere esplosive, verifica componenti, movimentazione sicura."
+            },
+            "8": {
+                titolo: "MONTAGGIO VALVOLE, POMPE, MACCHINE ROTANTI",
+                A: "Installazione, allineamento e serraggio di macchine rotanti e componenti meccanici.",
+                B: "Schiacciamento mani; Rischio proiezione parti rotanti; Rumore elevato; Vibrazioni; Rischio chimico da residui.",
+                C: "Attrezzature non idonee (Art. 71); Mancanza protezioni organi in movimento (Art. 70); Mancato isolamento linee (Art. 80); Formazione non adeguata (Art. 37).",
+                D: "Obblighi su sicurezza macchine, lock-out/tag-out, DPI, formazione e procedure meccaniche."
+            },
+            "9": {
+                titolo: "MONTAGGIO STRUTTURE METALLICHE",
+                A: "Assemblaggio di travi, pilastri, carpenteria metallica mediante bullonature, saldature e sollevamenti.",
+                B: "Caduta dall’alto; Schiacciamento durante sollevamenti; Cedimento strutture provvisorie; Incendi da saldatura; Rumore e vibrazioni.",
+                C: "Mancata protezione anticaduta (Art. 111–115); Sollevamenti non pianificati (Art. 71, 168); Saldature senza permesso (Art. 80–82); Inadeguate scaffalature e puntelli (Art. 96).",
+                D: "Norme sui lavori in quota, uso gru, PLE, sicurezza saldature e stabilità strutturale."
+            },
+            "10": {
+                titolo: "SMONTAGGIO IMPIANTI ESISTENTI (DEMOLIZIONI TECNOLOGICHE)",
+                A: "Rimozione apparecchiature, tubazioni, cavi, strutture e macchinari esistenti.",
+                B: "Crollo improvviso strutture; Tagli, abrasioni e schiacciamenti; Esposizione a residui chimici; Rumore e vibrazioni; Cadute dall’alto.",
+                C: "Mancata messa in sicurezza linee (Art. 80); Mancata valutazione rischi demolizione (Art. 151–153); Mancanza parapetti e protezioni (Art. 122); Attrezzature non idonee (Art. 71).",
+                D: "Obbligo di pianificazione demolizioni, isolamento energetico, DPI specifici e prevenzione cadute."
+            },
+            "11": {
+                titolo: "LAVORI IN SPAZI CONFINATI",
+                A: "Accesso e operazioni all’interno di serbatoi, vasche, cunicoli, silos, pozzetti, reattori o ambienti con limitati accessi e scarsa ventilazione.",
+                B: "Atmosfere tossiche, esplosive o anossiche; Ingresso senza permesso o gas-free; Incapacità di evacuazione; Cadute in verticale; Asfissia e intossicazione.",
+                C: "Assenza procedura spazi confinati (Art. 66); Mancanza monitoraggio gas (Art. 74–80); Mancanza permesso d’ingresso (Art. 121); DPI e recupero non adeguati (Art. 77).",
+                D: "Norme relative all’accesso sicuro in ambienti sospetti di inquinamento e confinati, obbligo di monitoraggio, permessi, DPI e squadra di emergenza."
+            },
+            "12": {
+                titolo: "LAVORI IN AREE ATEX",
+                A: "Attività condotte in zone classificate con rischio esplosione dovuto a gas o polveri.",
+                B: "Esplosione per innesco; Uso di attrezzature non certificate; Accumulo cariche elettrostatiche; Movimentazione prodotti infiammabili.",
+                C: "Attrezzature non marcate ATEX (Art. 70); Mancanza valutazione rischio esplosione (Art. 289–294); Permessi mancanti (Art. 80–82); Inadeguata formazione (Art. 37).",
+                D: "Norme per prevenzione delle esplosioni, classificazione zone ATEX, uso attrezzature idonee e procedure operative controllate."
+            },
+            "13": {
+                titolo: "COIBENTAZIONE E COIBENTI INDUSTRIALI",
+                A: "Applicazione, rimozione e ripristino di materiali isolanti termici o acustici su tubazioni, serbatoi e apparecchiature.",
+                B: "Inalazione polveri e fibre; Cadute da piccole altezze; Tagli con utensili; Manipolazione materiali pesanti; Esposizione ad agenti chimici.",
+                C: "Assenza protezioni per fibre nocive (Art. 225); Uso attrezzature non sicure (Art. 70–71); DPI inadeguati (Art. 77); Mancata formazione (Art. 37).",
+                D: "Norme su protezione da agenti chimici, uso attrezzature, DPI respiratori, gestione materiali isolanti."
+            },
+            "14": {
+                titolo: "SABBIATURA / IDROSABBIATURA",
+                A: "Pulizia superficiale con abrasivi o acqua ad alta pressione per rimozione vernici, ossidi o residui.",
+                B: "Proiezione particelle o abrasivi; Rumore elevato; Esposizione polveri; Schiacciamento apparecchiature; Lesioni da getto ad alta velocità.",
+                C: "Mancanza protezioni e tute speciali (Art. 77); Insufficiente aspirazione o ventilazione (Art. 225); Attrezzature ad alta pressione non certificate (Art. 70); Mancata formazione operatori (Art. 37).",
+                D: "Norme su esposizione agenti chimici, DPI specifici, sicurezza macchinari e controllo emissioni polveri."
+            },
+            "15": {
+                titolo: "IDROJETTING (2.500–3.000 BAR)",
+                A: "Pulizia industriale tramite getto d’acqua ultra-alta pressione per rimozione incrostazioni e vernici.",
+                B: "Lesioni penetranti da getto; Rottura tubazioni e ugelli; Scivolamento su superfici bagnate; Contaminazione chimica dei reflui; Rumore elevato.",
+                C: "Mancata verifica integrità tubi/ugelli (Art. 71); Operatori non specializzati (Art. 37–73); Assenza barriere e delimitazioni (Art. 163); DPI non idonei (Art. 77).",
+                D: "Norme su attrezzature ad alta pressione, formazione avanzata, DPI impermeabili anti-penetrazione e segregazione area."
+            },
+            "16": {
+                titolo: "REALIZZAZIONE IMPIANTI ELETTRICI (BT/MT)",
+                A: "Installazione, posa cavi, quadri elettrici, condutture e componenti in bassa o media tensione.",
+                B: "Elettrocuzione; Cortocircuiti e archi elettrici; Incendi; Esposizione a campi EM; Cadute dall’alto.",
+                C: "Operatori non PES/PAV/PEI (Art. 82); Materiali non certificati (Art. 80); Mancata messa fuori tensione (Art. 82); DPI non specifici (Art. 77).",
+                D: "Obblighi per lavori elettrici, formazione qualificata PES-PAV, messa in sicurezza linee e uso materiali certificati."
+            },
+            "17": {
+                titolo: "IMPIANTI DI STRUMENTAZIONE (INSTRUMENTATION)",
+                A: "Installazione sensori, trasmettitori, analizzatori, cavi di segnale, junction box, calibratura e avviamento.",
+                B: "Elettrocuzione; Errori di taratura che impattano la sicurezza impianto; Lavori in quota; Schiacciamenti in aree complesse; Micro-scariche ATEX.",
+                C: "Mancanza formazione specifica (Art. 37); Cavi non certificati o errata posa (Art. 80); Mancato rispetto ATEX (Art. 289–294); Posa senza autorizzazione cantiere (Art. 96).",
+                D: "Norme elettriche, ATEX, posa cavi e sicurezza in quota."
+            },
+            "18": {
+                titolo: "IMPIANTI ANTINCENDIO (idranti, sprinkler, schiuma)",
+                A: "Installazione e collaudo di impianti antincendio idrici, sprinkler o a schiuma.",
+                B: "Rottura tubi in pressione; Caduta materiali e tubazioni; Allagamenti; Rumore, vibrazioni; Lavori in quota.",
+                C: "Materiali non certificati (Art. 70); Mancata prova pressione (Art. 80); Errata installazione staffaggi (Art. 96); Mancanza DPI (Art. 77).",
+                D: "Norme antincendio, certificazione materiali, prove di tenuta e installazione meccanica corretta."
+            },
+            "19": {
+                titolo: "IMPERMEABILIZZAZIONI / GUAINA / RESINE",
+                A: "Applicazione di membrane bituminose, resine epossidiche, poliuretaniche o guaine termoadesive.",
+                B: "Esposizione a vapori tossici; Incendi (membrane a fiamma); Scivolamento su superfici fresche; Ustioni; Elettrocuzione su coperture umide.",
+                C: "Mancata ventilazione (Art. 225); Prodotti chimici senza SDS (Art. 223); Lavori con fiamma senza permesso (Art. 80); DPI respiratori assenti (Art. 77).",
+                D: "Obblighi su agenti chimici, lavori a caldo, DPI e sicurezza in copertura."
+            },
+            "20": {
+                titolo: "VERNICIATURA INDUSTRIALE / TRATTAMENTI ANTICORROSIVI",
+                A: "Applicazione di primer, epossidiche, poliuretaniche o cicli anticorrosivi con spruzzo, rullo o pennello.",
+                B: "Esposizione solventi e VOC; Infiammabilità prodotti; Inalazione overspray; Cadute dall’alto; Esposizione agenti chimici.",
+                C: "Mancanza ventilazione (Art. 225); Mancata valutazione rischio chimico (Art. 223); Attrezzature non certificate (Art. 70); DPI non idonei (Art. 77).",
+                D: "Norme su agente chimici, ventilazione, DPI filtranti, stoccaggio infiammabili e uso attrezzature certificate."
+            },
+            "21": {
+                titolo: "TANK CLEANING / BONIFICA SERBATOI",
+                A: "Pulizia interna serbatoi, rimozione fanghi, residui idrocarburi, gasolio, prodotti chimici, con mezzi manuali o automatizzati.",
+                B: "Atmosfere esplosive o tossiche; Anossia; Contatto con residui pericolosi; Scivolamento su superfici contaminate; Ustioni chimiche; Spazi confinati.",
+                C: "Mancata certificazione gas-free (Art. 66); Assenza monitoraggio gas continuo (Art. 74–80); Mancanza DPI antichem (Art. 77); Mancanza piano bonifica (Art. 223); Non conformità ATEX (Art. 289–294).",
+                D: "Norme su spazi confinati, rischio chimico, atmosfere esplosive, DPI e procedure di bonifica."
+            },
+            "22": {
+                titolo: "BUNDLE PULLING / ESTRUSIONE FASCIO TUBI SCAMBIATORI",
+                A: "Estrazione e rientro fascio tubiero di scambiatori termici tramite sistemi idraulici o meccanici.",
+                B: "Schiacciamento operatori; Cedimento strutture di sostegno; Proiezione tubi; Rumore e vibrazioni; Cadute materiali.",
+                C: "Attrezzature non certificate (Art. 70–71); Sollevamento non pianificato (Art. 168); Mancanza barriere area lavoro (Art. 163); DPI non idonei (Art. 77).",
+                D: "Norme su sollevamenti speciali, attrezzature meccaniche, sicurezza perimetrale e DPI."
+            },
+            "23": {
+                titolo: "APERTURA COLONNE / REATTORI / VESSEL (Vessel Opening)",
+                A: "Apertura boccaporti, flange, passi d’uomo e ispezioni interne di apparecchiature in pressione.",
+                B: "Rilasci di gas/vapori residui; Proiezione di parti sotto pressione; Atmosfere pericolose; Cadute in verticale; Schiacciamento flange e coperchi.",
+                C: "Mancata messa fuori servizio (Art. 80); Assenza certificazione zero-energy (Art. 82); Mancanza permesso d’ingresso (Art. 121); DPI non idonei (Art. 77).",
+                D: "Norme su impianti in pressione, lock-out/tag-out, spazi confinati e DPI."
+            },
+            "24": {
+                titolo: "LAVORI SU REFRATTARI (FORNI, CALDAIE)",
+                A: "Rimozione, posa e manutenzione materiali refrattari in forni, caldaie, reattori, con attività di martellatura, taglio e applicazione.",
+                B: "Esposizione a polveri ceramiche; Ustioni da superfici calde; Schiacciamento materiali pesanti; Cadute dall’alto; Rumore intensivo.",
+                C: "Mancanza ventilazione e aspirazione (Art. 225); DPI respiratori assenti (Art. 77); Ingresso in forni non raffreddati (Art. 66); Attrezzature non idonee (Art. 70).",
+                D: "Norme su esposizione polveri nocive, spazi confinati, DPI e messa in sicurezza termica."
+            },
+            "25": {
+                titolo: "PRECOMMISSIONING E COMMISSIONING IMPIANTI",
+                A: "Prove funzionali, test meccanici, verifiche idrauliche, pneumatiche ed elettriche prima della messa in servizio impianto.",
+                B: "Sovrapressioni; Rottura linee; Shock elettrico; Rischio ATEX; Rumore e vibrazioni.",
+                C: "Mancanza piani test (Art. 96); Assenza valvole di sicurezza (Art. 71); Personale non qualificato (Art. 37–82); Mancata segregazione area (Art. 163).",
+                D: "Norme per test impianti, sicurezza elettrica, pressione e autorizzazioni per prove."
+            },
+            "26": {
+                titolo: "PULIZIE INDUSTRIALI (con mezzi, aspiratori, detergenti)",
+                A: "Rimozione polveri, residui, fanghi e sostanze chimiche tramite aspiratori industriali, lavasuperfici, detergenti.",
+                B: "Esposizione chimica; Contatto con superfici contaminate; Rumore da macchine; Scivolamenti; Incendio da solventi.",
+                C: "Detergenti senza SDS (Art. 223); Aspiratori non certificati (Art. 70); Mancanza guanti e DPI antichem (Art. 77); Mancato addestramento (Art. 37).",
+                D: "Norme su rischio chimico, uso sicuro attrezzature e DPI specifici."
+            },
+            "27": {
+                titolo: "MOVIMENTAZIONE MECCANICA MATERIALI (gru, muletti, sollevatori)",
+                A: "Trasporto e sollevamento materiali con gru, carrelli elevatori, telescopici, transpallet e sollevatori.",
+                B: "Schiacciamento; Ribaltamento mezzi; Caduta carichi; Investimenti pedonali; Stress meccanico attrezzature.",
+                C: "Operatori non patentati (Art. 73); Sollevamenti non pianificati (Art. 168); Attrezzature non revisionate (Art. 71); Mancanza segnaletica (Art. 163).",
+                D: "Norme su attrezzature di sollevamento, viabilità interna, formazione specifica e DPI."
+            },
+            "28": {
+                titolo: "MOVIMENTAZIONE MANUALE DEI CARICHI (MMC)",
+                A: "Sollevamento, trasporto, spinta e movimentazione manuale di oggetti o materiali.",
+                B: "Lesioni muscoloscheletriche; Schiacciamento mani; Cadute con carico; Fatica e posture scorrette.",
+                C: "Assenza valutazione MMC (Art. 167–171); Mancata formazione ergonomica (Art. 37); Peso superiore limiti sicurezza (Art. 168); Mancanza ausili meccanici (Art. 71).",
+                D: "Norme su prevenzione disturbi muscolo-scheletrici, ergonomia e ausili di sollevamento."
+            },
+            "29": {
+                titolo: "LOGISTICA, MAGAZZINI, STOCCAGGIO MATERIALI",
+                A: "Ricezione, deposito, controllo, smistamento e prelievo materiali tecnici o chimici.",
+                B: "Crollo scaffalature; Investimento da muletti; Esposizione a chimici stoccati; Schiacciamento mani; Incendi.",
+                C: "Mancata classificazione prodotti (Art. 223); Scaffalature non certificate (Art. 70); Viabilità interna non regolata (Art. 163); Personale non formato (Art. 37).",
+                D: "Norme su stoccaggio sicuro, rischio chimico, movimentazione e segnaletica."
+            },
+            "30": {
+                titolo: "GESTIONE RIFIUTI PERICOLOSI IN CANTIERE",
+                A: "Raccolta, etichettatura, contenimento, stoccaggio e consegna a smaltitore autorizzato di rifiuti pericolosi CER.",
+                B: "Contatto con sostanze tossiche; Reazioni chimiche per incompatibilità; Sversamenti; Incendi ed esplosioni; Errato contenimento.",
+                C: "Errata etichettatura (Art. 223); Mancata formazione rischio chimico (Art. 37); Stoccaggi non segregati (Art. 96); Mancanza DPI (Art. 77).",
+                D: "Norme su rischio chimico, rifiuti pericolosi, DPI, stoccaggio e tracciabilità."
+            },
+            "31": {
+                titolo: "MONITORAGGIO GAS / CONTROLLO ATMOSFERE (Gas Tester)",
+                A: "Misurazione continua o discreta di ossigeno, gas infiammabili, tossici o vapori per verificare condizioni sicure nei punti di lavoro, spazi confinati o aree industriali.",
+                B: "Gas tossici; Anossia; Infiammabilità; Errori di lettura; Malfunzionamento strumenti; Mancata calibrazione.",
+                C: "Assenza Gas Test (Art. 74); Strumenti non calibrati (Art. 71); Formazione assente (Art. 37); DPI assenti (Art. 77).",
+                D: "Norme su atmosfere pericolose, calibrazione strumenti, formazione addetti e DPI."
+            },
+            "32": {
+                titolo: "GESTIONE EMERGENZE E PIANO DI EVACUAZIONE",
+                A: "Pianificazione, addestramento e attuazione delle procedure in caso di emergenza, incendio, infortunio, sversamento, terremoto o altri eventi critici.",
+                B: "Panico e caos; Incapacità di evacuare; Mancato soccorso; Malfunzionamento dispositivi sicurezza; Esposizione a pericolo.",
+                C: "Piano di Emergenza assente (Art. 18); Mancanza addestramento (Art. 37); Squadre di emergenza non formate (Art. 43); Mancanza segnaletica (Art. 162).",
+                D: "Norme su gestione emergenze, formazione, procedure e segnaletica di sicurezza."
+            },
+            "33": {
+                titolo: "PRONTO SOCCORSO E GESTIONE INFORTUNI",
+                A: "Assistenza immediata ai lavoratori infortunati e attivazione della catena di soccorso sanitario.",
+                B: "Ritardo nei soccorsi; Aggravamento lesioni; Materiali primo soccorso non idonei; Contaminazione ematica; Stress termico.",
+                C: "Mancanza cassetta PS (Art. 45); Addetti PS non formati (Art. 37); Mancanza mezzi di comunicazione (Art. 45); Registrazioni infortuni assenti (Art. 53).",
+                D: "Norme su primo soccorso, formazione, attrezzature e registrazione infortuni."
+            },
+            "34": {
+                titolo: "CALCESTRUZZO, CASSEFORME, GETTI",
+                A: "Realizzazione di fondazioni, platee, muri, solai in calcestruzzo, con posa di armature, casseri e getto.",
+                B: "Crollo casseforme; Schiacciamento; Esposizione cemento e additivi chimici; Caduta dall’alto; Vibrazioni e rumore.",
+                C: "Casseforme non certificate (Art. 115–122); Mancata verifica stabilità (Art. 96); Mancanza DPI chimici (Art. 77); Vibrocompattatori non idonei (Art. 70).",
+                D: "Norme su opere provvisionali, rischio chimico, attrezzature da costruzione."
+            },
+            "35": {
+                titolo: "MURATURA, INTONACI, TRACCIATURA",
+                A: "Lavori di costruzione o ripristino con mattoni, blocchi, malte e intonaci.",
+                B: "Inalazione polveri silicee; Movimentazione carichi; Caduta dall’alto da ponti provvisori; Schiacciamento dita; Rumore.",
+                C: "DPI respiratori assenti (Art. 77); Carico manuale eccessivo (Art. 168); Ponteggi non a norma (Art. 115); Mancanza formazione (Art. 37).",
+                D: "Norme su rischio polveri, MMC, lavori in quota e formazione."
+            },
+            "36": {
+                titolo: "SEGNALETICA DI CANTIERE",
+                A: "Installazione cartelli, barriere, delimitazioni, coni, pannelli informativi e percorsi obbligati.",
+                B: "Investimenti; Urti con mezzi; Mancata percezione per assenza illuminazione; Errori nella segnalazione di pericoli.",
+                C: "Segnaletica non conforme (Art. 162–164); Mancata illuminazione (Art. 80); Viabilità non regolata (Art. 163); Cartelli mancanti per aree a rischio (Art. 161).",
+                D: "Norme sulla segnaletica di sicurezza e viabilità interna."
+            },
+            "37": {
+                titolo: "VIABILITÀ DI CANTIERE E MOVIMENTAZIONE VEICOLI",
+                A: "Gestione percorsi mezzi, transiti, zone carico/scarico, aree parcheggio e coordinamento traffico interno.",
+                B: "Investimento pedoni; Collisioni mezzi; Ribaltamento; Intralci operativi; Scarsa visibilità.",
+                C: "Viabilità non segnalata (Art. 163); Carichi non assicurati (Art. 164); Barriere assenti (Art. 162); Mancanza formazione operatori (Art. 37).",
+                D: "Norme su circolazione interna, segnaletica, formazione conducenti."
+            },
+            "38": {
+                titolo: "LAVORI STRADALI / ASFALTATURE",
+                A: "Preparazione fondo, fresatura, stesa conglomerato bituminoso, compattazione e finitura.",
+                B: "Investimento da mezzi; Ustioni asfalto caldo; Polveri bituminose; Rumore e vibrazioni; Elevate temperature.",
+                C: "Segnaletica stradale assente (Art. 163); DPI termici mancanti (Art. 77); Macchine non omologate (Art. 71); Formazione assente (Art. 37).",
+                D: "Norme su viabilità, rischio termico, DPI e attrezzature."
+            },
+            "39": {
+                titolo: "MANUTENZIONE IMPIANTI E ATTREZZATURE (officina meccanica)",
+                A: "Riparazione, revisione, taratura, lubrificazione di attrezzature, macchine e componenti in officina.",
+                B: "Schiacciamento; Tagli/abrasioni; Proiezione schegge; Rumore; Esposizione chimica (oli, solventi).",
+                C: "Macchine senza protezioni (Art. 70); Lock-out/Tag-out mancante (Art. 71); DPI non idonei (Art. 77); Formazione assente (Art. 37).",
+                D: "Norme su sicurezza macchine, DPI, blocco energetico e formazione."
+            },
+            "40": {
+                titolo: "POZZI E FOSSI DI PROFONDITÀ",
+                A: "Scavi con profondità superiore a 1,5 m, per pozzi, cunicoli, fognature o fondazioni.",
+                B: "Cedimento pareti; Atmosfere pericolose; Caduta dall’alto; Inondazioni; Investimento mezzi in prossimità.",
+                C: "Mancanza armature di sostegno (Art. 119–121); Mancata verifica geologica (Art. 96); Assenza pompe emergenza (Art. 80); Accessi non protetti (Art. 113).",
+                D: "Norme su scavi profondi, opere provvisionali, accessi e drenaggi."
+            },
+            "41": {
+                titolo: "CARPENTERIA PESANTE / MANUTENZIONE STRUTTURE PORTANTI",
+                A: "Lavorazione, montaggio, rinforzo o sostituzione di travi, colonne, supporti e strutture metalliche ad elevata massa.",
+                B: "Schiacciamento per caduta elementi; Taglio e abrasioni; Collasso strutturale; Rumore e vibrazioni; Caduta dall’alto.",
+                C: "Strutture non puntellate (Art. 122); Mezzi di sollevamento non idonei (Art. 71); Mancanza DPI anticaduta (Art. 77); Assenza verifica stabilità (Art. 96).",
+                D: "Norme su stabilità strutture, sollevamento sicuro e protezioni anticaduta."
+            },
+            "42": {
+                titolo: "SOLLEVAMENTI ECCEZIONALI (heavy lifting)",
+                A: "Sollevamento di carichi fuori standard tramite gru cingolate, telescopiche, autogru e sistemi complessi in tandem.",
+                B: "Ribaltamento gru; Rottura brache/golfari; Caduta carico; Interferenza con linee elettriche; Errori di comunicazione.",
+                C: "Piano di sollevamento assente (Art. 71–73); Accessori non certificati (Art. 71 c.4); Mancanza segnalatore/IMBRACATORE (Art. 37); Operazioni vicino linee elettriche senza protezioni (Art. 117).",
+                D: "Norme su attrezzature di sollevamento, formazione e distanze di sicurezza."
+            },
+            "43": {
+                titolo: "PRELIEVO CAMPIONI CHIMICI / ANALISI DI PROCESSO",
+                A: "Raccolta di campioni di fluidi o materiali da tubazioni, reattori, serbatoi per analisi di laboratorio.",
+                B: "Contatto con sostanze chimiche calde o corrosive; Proiezione fluidi; Inalazione vapori; Rischio biologico; Ustioni.",
+                C: "DPI antichemici assenti (Art. 77); Procedure prelievo mancanti (Art. 66); Recipienti non idonei (Art. 223); Formazione assente (Art. 37).",
+                D: "Norme su rischio chimico, DPI, procedure e formazione specifica."
+            },
+            "44": {
+                titolo: "GESTIONE PROVVISTE IDRICHE E UTENZE",
+                A: "Gestione e manutenzione delle reti idriche, scarichi, prese e utenze di cantiere.",
+                B: "Allagamenti; Mancanza acqua potabile; Contatto con reflui; Caduta in pozzetti; Rischio elettrico per vicinanza.",
+                C: "Impianti non a norma (Art. 80); Pozzetti non protetti (Art. 122); Mancanza DPI (Art. 77); Acqua non potabile (Art. 96).",
+                D: "Norme su igiene, impianti di cantiere e protezioni."
+            },
+            "51": {
+                titolo: "OPERE DI RIPRISTINO STRADALE E PAVIMENTAZIONE",
+                A: "Ripristino di manto stradale, pavimentazioni civili o industriali dopo scavi o lavori.",
+                B: "Investimento mezzi; Rumore e vibrazioni; Inalazione polveri; Esposizione asfalto caldo; Schiacciamento.",
+                C: "Segnaletica stradale assente (Art. 163); DPI non idonei (Art. 77); Macchine non conformi (Art. 71); Assenza piano viabilità (Art. 96).",
+                D: "Norme su viabilità, attrezzature e DPI."
+            },
+            "52": {
+                titolo: "INSTALLAZIONE E MANUTENZIONE GRU E MEZZI DI SOLLEVAMENTO",
+                A: "Montaggio, smontaggio, ispezione e manutenzione ordinaria e straordinaria di gru, carroponti e paranchi.",
+                B: "Crollo gru; Caduta dall’alto; Schiacciamento parti; Rischio elettrico; Contatto oli.",
+                C: "Registro controlli assente (Art. 71); Operatori non patentati (Art. 73); Montaggio non supervisionato (Art. 71); Mancanza DPI (Art. 77).",
+                D: "Norme su attrezzature di sollevamento, formazione e controlli."
+            },
+            "53": {
+                titolo: "GESTIONE E STOCCAGGIO MATERIALI INFIAMMABILI E CARBURANTI",
+                A: "Deposito e manipolazione di benzina, gasolio, GPL, solventi, vernici e altri materiali infiammabili.",
+                B: "Incendio ed esplosione; Sversamento; Intossicazione; Esposizione a vapori tossici; Ustioni.",
+                C: "Stoccaggio non conforme (Art. 223); Assenza estintori (Art. 46); Contenitori non etichettati (Art. 223); Mancanza formazione (Art. 37).",
+                D: "Norme su rischio incendio, rischio chimico, stoccaggio e formazione."
+            },
+            "54": {
+                titolo: "GESTIONE CAMPI DI RIFIUTI E AREE DI STOCCAGGIO",
+                A: "Organizzazione, delimitazione e gestione delle aree per la raccolta temporanea di rifiuti speciali, non pericolosi e pericolosi.",
+                B: "Contatto con sostanze tossiche; Contaminazione terreno; Investimento; Incendi; Scivolamento.",
+                C: "Aree non delimitate (Art. 162); Rifiuti non separati (Art. 190); Documentazione assente (Art. 193); Mancanza DPI (Art. 77).",
+                D: "Norme su viabilità, stoccaggi e gestione rifiuti."
+            },
+            "55": {
+                titolo: "RIPRISTINO AREE E CONSEGNA CANTIERE",
+                A: "Livellamento, pulizia, rimozione rifiuti, ripristino verde, restituzione aree industriali o civili.",
+                B: "Polveri; Contatto sostanze residue; Movimentazione mezzi; Infortuni da pulizia manuale.",
+                C: "Rifiuti non trattati (Art. 190–193); Mancanza DPI (Art. 77); Mancata segnalazione operazioni (Art. 162); Carico/scarico non vigilato (Art. 164).",
+                D: "Norme su rifiuti, DPI e viabilità."
+            },
+            "56": {
+                titolo: "LAVORI SU FUNI (rope access)",
+                A: "Accesso e posizionamento su funi per manutenzioni, ispezioni o installazioni in quota.",
+                B: "Caduta dall’alto; Errori ancoraggio; Effetto pendolo; Suspended trauma; Meteo avverso.",
+                C: "Operatori non certificati (Art. 116); Mancanza doppia fune (Art. 116 c.3); Ancoraggi non verificati (Art. 122); DPI non ispezionati (Art. 77).",
+                D: "Norme su lavori su funi, DPI e ancoraggi certificati."
+            }
+        };
+ 
+        // =====================================================================
+        // BLOCCO DATI 2/3: Lavorazioni 45-50 e 57-80
+        // =====================================================================
+        const lavorazioni_45_80 = {
+            "45": {
+                titolo: "MANUTENZIONE SISTEMI ANTINCENDIO MANUALE",
+                A: "Installazione, controllo, manutenzione e verifica di sistemi antincendio manuali e dispositivi di protezione.",
+                B: "Incendi non rilevati; Malfunzionamento estintori; Caduta bombole CO₂; Schiacciamenti durante montaggio.",
+                C: "Attrezzature non ispezionate (Art. 46); Mancata formazione antincendio (Art. 37); DPI non conformi (Art. 77); Mancanza registro controlli (Art. 64).",
+                D: "Norme antincendio del Titolo III e obblighi manutentivi."
+            },
+            "46": {
+                titolo: "INSTALLAZIONE SCALE FISSE, PASSERELLE, PARAPETTI",
+                A: "Montaggio e fissaggio di sistemi permanenti di accesso e protezione contro cadute.",
+                B: "Caduta durante installazione; Errato fissaggio elementi; Schiacciamento mani; Collasso struttura.",
+                C: "Parapetti non conformi UNI (Art. 115–122); Mancati collaudi (Art. 96); Lavoratori non formati (Art. 37); DPI assenti (Art. 77).",
+                D: "Norme su lavori in quota, protezioni permanenti e formazione."
+            },
+            "47": {
+                titolo: "MISURE FONOMETRICHE E VERIFICA RUMORE",
+                A: "Misurazioni ambientali e personali del rumore, verifica conformità e monitoraggio.",
+                B: "Esposizione a rumore eccessivo; Errori di misurazione; Mancato uso DPI; Perdita udito.",
+                C: "Mancato uso DPI (Art. 77); Strumenti non calibrati (Art. 71); Formazione assente (Art. 37); Assenza DVR (Art. 28).",
+                D: "Norme su rischio rumore, DPI e strumentazione certificata."
+            },
+            "48": {
+                titolo: "PRELIEVO CAMPIONI AMBIENTALI (ARIA, ACQUA, TERRENO)",
+                A: "Raccolta e analisi di campioni per monitoraggio ambientale di aria, acqua o terreno.",
+                B: "Contatto con sostanze tossiche; Inalazione vapori; Rischio biologico; Caduta in pozzetti o fossi; Schiacciamento.",
+                C: "DPI non conformi (Art. 77); Procedure prelievo non idonee (Art. 66); Pozzetti non protetti (Art. 122); Formazione assente (Art. 37).",
+                D: "Norme su campionamento, rischio chimico/biologico e DPI."
+            },
+            "49": {
+                titolo: "MANUTENZIONE OPERE IDRAULICHE (dighe, canali, argini)",
+                A: "Interventi su opere di ingegneria idraulica, inclusi controlli strutturali e ripristini.",
+                B: "Allagamento; Cedimento struttura; Caduta in acqua; Rischi biologici; Movimentazione carichi pesanti.",
+                C: "Procedure di lavoro assenti (Art. 66); Attrezzature non idonee (Art. 71); Assenza DPI (Art. 77); Mancata valutazione rischio idraulico (Art. 96).",
+                D: "Norme su procedure, attrezzature e DPI."
+            },
+            "50": {
+                titolo: "DECONTAMINAZIONE E BONIFICA AMBIENTALE",
+                A: "Rimozione e trattamento di contaminanti chimici, fisici o biologici da aree industriali o civili.",
+                B: "Esposizione a sostanze tossiche; Inalazione vapori; Incendi; Contaminazione reflui; Movimentazione rifiuti speciali.",
+                C: "Mancanza piano di bonifica (Art. 223); DPI non adeguati (Art. 77); Personale non formato (Art. 37); Gestione rifiuti non tracciata (Art. 193).",
+                D: "Norme su rischio chimico, DPI, formazione e gestione rifiuti."
+            },
+            "57": {
+                titolo: "LAVORI SUBACQUEI",
+                A: "Attività di immersione per manutenzioni, controlli, posa tubi, pulizia fondali e strutture marine.",
+                B: "Annegamento; Barotrauma; Ipoglicemia/ipertermia; Aggrovigliamento attrezzatura; Collisioni con mezzi.",
+                C: "Mancanza squadra subacquea (Art. 116 analogia lavori speciali); Bombole non revisionate (Art. 71); Mancanza piano emergenza (Art. 43); DPI non idonei (Art. 77).",
+                D: "Norme su attrezzature in pressione, emergenze e lavori speciali."
+            },
+            "58": {
+                titolo: "POSA E MANUTENZIONE CAVI FIBRA OTTICA E DATI",
+                A: "Installazione, giunzione e verifica di reti dati in fibra ottica o rame, inclusa posa in canaline o aeree.",
+                B: "Lesioni oculari da fibra ottica; Elettrocuzione (cavi adiacenti); Caduta dall’alto; Rischio elettrico da laser; Schiacciamento.",
+                C: "DPI oculari assenti (Art. 77); Lavori in quota senza protezione (Art. 111); Strumenti laser non certificati (Art. 70); Formazione assente (Art. 37).",
+                D: "Norme su DPI specifici, lavori in quota e rischio elettrico."
+            },
+            "59": {
+                titolo: "INSTALLAZIONE E MANUTENZIONE SEGNALETICA LUMINOSA E STRADALE",
+                A: "Montaggio e manutenzione di semafori, pannelli a messaggio variabile, segnali luminosi e segnaletica orizzontale/verticale.",
+                B: "Investimento da veicoli; Elettrocuzione; Caduta dall’alto; Schiacciamento; Rischio ATEX in zona di posa.",
+                C: "Mancanza segnaletica temporanea (Art. 163); Operatori non PES/PAV (Art. 82); Lavori in quota non protetti (Art. 111); Formazione assente (Art. 37).",
+                D: "Norme su viabilità, rischio elettrico e lavori in quota."
+            },
+            "60": {
+                titolo: "LAVORI SU IMPIANTI A SCHIUMA ANTINCENDIO",
+                A: "Installazione, manutenzione e collaudo di impianti fissi o mobili a schiuma antincendio.",
+                B: "Allagamento; Scoppio tubazioni; Sovrapressione; Contatto schiume chimiche; Caduta in quota durante posa.",
+                C: "Mancanza prova pressione (Art. 74); Materiali non certificati (Art. 71); Schede chimiche schiume non presenti (Art. 223); Mancanza permesso quota (Art. 96).",
+                D: "Norme su pressione, materiali certificati e rischio chimico."
+            },
+            "61": {
+                titolo: "COIBENTAZIONE TERMICA E ACUSTICA",
+                A: "Posa di materiali isolanti (lana minerale, elastomeri, poliuretano, pannelli) su tubazioni, serbatoi, macchine e strutture per riduzione dispersioni termiche o rumore.",
+                B: "Inalazione fibre minerali; Tagli da lamiere di rivestimento; Caduta in quota; Contatto con superfici calde; Irritazioni cutanee e oculari.",
+                C: "DPI respiratori non idonei (Art. 77); Mancata aspirazione polveri fibre (Art. 225); Accessi non sicuri in quota (Art. 111); Materiali non certificati (Art. 71).",
+                D: "Norme su rischio chimico/fibre, DPI e lavori in quota."
+            },
+            "62": {
+                titolo: "RIVESTIMENTI REFRATTARI (forni, caldaie, reattori)",
+                A: "Applicazione, sostituzione o ripristino di mattoni e malte refrattarie resistenti ad altissime temperature.",
+                B: "Ustioni termiche; Atmosfere povere di ossigeno; Caduta materiali; Sollevamento carichi pesanti; Polveri ceramiche.",
+                C: "Mancanza ventilazione (Art. 66); DPI termici mancanti (Art. 77); Sollevamenti manuali errati (Art. 168); Assenza protezione polveri (Art. 225).",
+                D: "Norme su rischio termico, chimico e sollevamento carichi."
+            },
+            "63": {
+                titolo: "SALDATURA A PROCESSO SPECIALE (TIG, MIG, elettrodo)",
+                A: "Saldatura di precisione e strutturale con processi a gas inerte o elettrodo rivestito.",
+                B: "Fumi di saldatura tossici; Radiazioni UV/IR; Rischio elettrico; Incendio/esplosione; Proiezione di scintille.",
+                C: "Ventilazione insufficiente (Art. 225); DPI non conformi (Art. 77); Lavori a caldo senza permesso (Art. 80); Assenza DPI antincendio (Art. 46).",
+                D: "Norme su rischio chimico, elettrico e antincendio."
+            },
+            "64": {
+                titolo: "SABBIATURA / VERNICIATURA IN CABINA",
+                A: "Pulizia e verniciatura di componenti in ambiente controllato (cabine pressurizzate/aspirate).",
+                B: "Esposizione solventi; Rumore; Incendio; Sovrapressione/depressione cabina; Proiezione abrasivi.",
+                C: "Cabina non certificata (Art. 70); DPI respiratori assenti (Art. 77); Aspirazione non funzionante (Art. 225); Formazione assente (Art. 37).",
+                D: "Norme su esposizione a polveri, alte pressioni e segregazione aree."
+            },
+            "65": {
+                titolo: "PULIZIE AD ALTA PRESSIONE (idrogetto 2500–3000 bar)",
+                A: "Pulizia industriale tramite getti d’acqua ultra-alta pressione per rimuovere incrostazioni, depositi, vernici.",
+                B: "Lesioni perforanti da getto; Proiezione materiali; Rumore estremo; Scivolamento superfici bagnate; Rottura tubazioni alta pressione.",
+                C: "Tubazioni non testate (Art. 71–74); DPI mancanti (tuta anti-taglio) (Art. 77); Operatori non formati (Art. 37); Area non interdetta (Art. 162).",
+                D: "Norme su attrezzature ad alta pressione e DPI specifici."
+            },
+            "66": {
+                titolo: "MANUTENZIONE POMPE, VALVOLE, COMPRESSORI",
+                A: "Smontaggio, revisione, lubrificazione, sostituzione parti su macchine rotanti di processo.",
+                B: "Schiacciamento dita; Rumore; Fluido residuo in pressione; Esposizione a oli e grassi; Parti rotanti.",
+                C: "Mancato isolamento LOTO (Art. 71); DPI errati (Art. 77); Attrezzature non idonee (Art. 70); Mancanza schede sostanze (Art. 223).",
+                D: "Norme su macchine, DPI e rischio chimico."
+            },
+            "67": {
+                titolo: "MANUTENZIONE SCAMBIATORI / BUNDLE PULLING",
+                A: "Estrazione fasci tubieri, pulizia, sostituzione tubi, prova tenuta e rimontaggio scambiatori.",
+                B: "Schiacciamento carico; Pressioni residue; Incastri sotto carico; Rumore e vibrazioni; Contatto con fanghi chimici.",
+                C: "Attrezzature lifting non certificate (Art. 71); Mancati permessi lavori in pressione (Art. 74); Mancanza barriere area (Art. 162); DPI non idonei (Art. 77).",
+                D: "Norme su sollevamento, pressione, DPI e segregazione aree."
+            },
+            "68": {
+                titolo: "SMONTAGGIO TUBAZIONI E LINEE DI PROCESSO",
+                A: "Rimozione sezioni di tubazioni, supporti, valvole e flange su impianti non in esercizio.",
+                B: "Rilascio fluidi residui; Caduta materiali; Schiacciamento; Scintille in area ATEX; Caduta dall’alto.",
+                C: "Mancato isolamento LOTO (Art. 80); Assenza DPI chimici (Art. 77); Lavori in quota senza protezione (Art. 111); Assenza permessi (Art. 96).",
+                D: "Norme su isolamento energetico, rischio chimico, DPI e lavori in quota."
+            },
+            "69": {
+                titolo: "DISINFESTAZIONE E DERATTIZZAZIONE AMBIENTALE",
+                A: "Applicazione di agenti chimici per eliminazione parassiti, insetti, roditori in ambienti industriali o civili.",
+                B: "Esposizione a sostanze chimiche tossiche; Inalazione vapori; Rischio biologico; Contaminazione alimentare; Incendio.",
+                C: "DPI respiratori mancanti (Art. 77); Prodotti senza SDS (Art. 223); Personale non formato (Art. 37); Attività ATEX senza misure (Art. 290–297).",
+                D: "Norme su rischio chimico, ATEX e DPI."
+            },
+            "70": {
+                titolo: "MONTAGGIO OPERE DI RECINZIONE E SICUREZZA PERIMETRALE",
+                A: "Installazione di reti, cancelli, barriere rigide, delimitazioni cantieri e aree industriali.",
+                B: "Tagli da fili e lamiere; Schiacciamento pali; Caduta in trincea; Rumore attrezzi; Proiezione pietrisco.",
+                C: "Mancata stabilizzazione pali (Art. 96); DPI taglio assenti (Art. 77); Viabilità non regolata (Art. 163); Attrezzi non idonei (Art. 71).",
+                D: "Norme su DPI, attrezzature e sicurezza aree di lavoro."
+            },
+            "71": {
+                titolo: "INSTALLAZIONE OPERE DI URBANIZZAZIONE (fognature, acquedotti, gas)",
+                A: "Realizzazione reti interrate, scavi, posa tubazioni, giunti, pozzetti, collaudi idraulici.",
+                B: "Scavi profondi; Sovrapressioni idriche; Gas residui; Cedimento terreno; Investimento mezzi.",
+                C: "Mancanza armature scavi (Art. 119–121); Test pressione non certificati (Art. 74); Assenza DPI respiratori (Art. 77); Mancata mappatura sottoservizi (Art. 96).",
+                D: "Norme su scavi, pressione e rischio gas."
+            },
+            "72": {
+                titolo: "INSTALLAZIONE E MANUTENZIONE IMPIANTI DI ASPIRAZIONE E VENTILAZIONE",
+                A: "Montaggio canalizzazioni, ventilatori, filtri, aspirazioni polveri/fumi e cabine di abbattimento.",
+                B: "Caduta dall’alto; Tagli da lamiere; Polveri e fumi residui; Sovracorrenti elettriche; Rumore.",
+                C: "Lavori in quota non protetti (Art. 111); Impianti elettrici non a norma (Art. 80); DPI assenti (Art. 77); Macchinari non certificati (Art. 70).",
+                D: "Norme su lavori in quota, impianti elettrici e qualità dell'aria."
+            },
+            "73": {
+                titolo: "TAGLIO E SMONTAGGIO LAMIERE METALLICHE (fiamma, plasma, cesoia)",
+                A: "Separazione di lamiere, profilati o strutture metalliche mediante taglio termico o meccanico.",
+                B: "Proiezione schegge e scintille; Fumi di taglio tossici; Rumore; Ustioni; Rischio elettrico.",
+                C: "DPI non idonei (Art. 77); Ventilazione assente (Art. 225); Attrezzature non manutenute (Art. 71); Formazione assente (Art. 37).",
+                D: "Norme su attrezzature taglio e DPI."
+            },
+            "74": {
+                titolo: "TRACCIATURA E MARCATURA STRUTTURE E COMPONENTI",
+                A: "Misurazione, marcatura e allineamento di componenti per saldature, tagli o montaggi.",
+                B: "Caduta dall’alto; Proiezione di inchiostri o vernici chimiche; Tagli da lamiere; Rumore; Ergonomia.",
+                C: "Lavori in quota non protetti (Art. 111); DPI chimici assenti (Art. 77); Attrezzature non idonee (Art. 70); Formazione assente (Art. 37).",
+                D: "Norme su lavori in quota, DPI e attrezzature."
+            },
+            "75": {
+                titolo: "MONTAGGIO E MANUTENZIONE SISTEMI PLC E AUTOMAZIONE",
+                A: "Installazione, cablaggio, programmazione e verifica logiche PLC, quadri elettrici e sistemi DCS.",
+                B: "Rischio elettrico; Errori automazione; Archi elettrici; DPI non idonei; Cedimento supporti quadri.",
+                C: "Mancanza qualificazione PES/PAV (Art. 82); Quadri aperti non protetti (Art. 80); Software non validato (Art. 71); Mancanza schemi elettrici (Art. 80).",
+                D: "Norme su rischio elettrico e impianti di automazione."
+            },
+            "76": {
+                titolo: "DECOMMISSIONING IMPIANTI (smantellamento linee, apparecchiature, strutture)",
+                A: "Rimozione e demolizione controllata di impianti, apparecchiature, tubi, strutture e componenti.",
+                B: "Caduta materiali; Atmosfere residue; Polveri; Taglio e abrasioni; Movimentazione carichi.",
+                C: "Mancata bonifica iniziale (Art. 66); Attrezzature non sicure demolizione (Art. 71); Mancanza segregazione area (Art. 162); DPI mancanti (Art. 77).",
+                D: "Norme su demolizioni, bonifiche e gestione interferenze."
+            },
+            "77": {
+                titolo: "DECOMMISSIONING TUBAZIONI SOTTERRANEE",
+                A: "Disattivazione, inertizzazione, rimozione o tombamento reti interrate di gas, acque, oli o prodotti chimici.",
+                B: "Atmosfere esplosive nel tubo; Cedimento terreno; Esposizione a residui chimici; Rottura tubazione adiacente; Schiacciamento tramite escavatori.",
+                C: "Mancanza gas free (Art. 66); Scavi non protetti (Art. 119–121); DPI antichem mancanti (Art. 77); Rifiuti non gestiti (Art. 190).",
+                D: "Norme su scavi, spazi confinati e rischio chimico."
+            },
+            "78": {
+                titolo: "MANUTENZIONE ELETTROSTRUMENTALE SU IMPIANTI ENERGETICI",
+                A: "Interventi su quadri, cavi, sensori in centrali elettriche, turbine, o impianti ad alta potenza.",
+                B: "Elettrocuzione (MT/AT); Arco elettrico; Esplosione; Ustioni; Caduta dall’alto.",
+                C: "Operatori non PES/PAV/PEI (Art. 82); Mancanza isolamento LOTO (Art. 80); DPI non conformi (Art. 77); Attrezzature non idonee (Art. 70).",
+                D: "Norme su rischio elettrico, DPI e isolamento energetico."
+            },
+            "79": {
+                titolo: "MONTAGGIO ED ESPOSIZIONE DI MATERIALE PUBBLICITARIO / SEGNALETICO",
+                A: "Installazione di cartelloni, insegne, striscioni in quota o in aree di accesso pubblico.",
+                B: "Caduta dall’alto; Rischio elettrico da insegne; Investimento; Collasso struttura esposta; Vento.",
+                C: "Lavori in quota non protetti (Art. 111); Strutture non certificate (Art. 96); DPI assenti (Art. 77); Formazione assente (Art. 37).",
+                D: "Norme su lavori in quota, stabilità strutture e DPI."
+            },
+            "80": {
+                titolo: "CAROTAGGI E TAGLI DI CALCESTRUZZO (dischi diamantati, perforazioni)",
+                A: "Esecuzione fori, tagli strutturali con carotatrici e dischi diamantati ad acqua o secco.",
+                B: "Schiacciamento utensile; Proiezione acqua/polveri; Rumore e vibrazioni; Contatto con armature; Elettrocuzione.",
+                C: "Mancanza protezioni disco (Art. 70); Mancanza aspirazione/polveri (Art. 225); Attrezzatura non manutenuta (Art. 71); Controlli elettrici assenti (Art. 80).",
+                D: "Norme su uso attrezzature rotative, rischio elettrico e polveri."
+            }
+        };
+ 
+        // =====================================================================
+        // BLOCCO DATI 3/3: Lavorazioni 81-110
+        // =====================================================================
+        const lavorazioni_81_110 = {
+            "81": {
+                titolo: "CONTROLLI NON DISTRUTTIVI (UT, RX, MT, PT, VT)",
+                A: "Verifiche strutturali e di saldatura senza alterare materiali tramite ultrasuoni, radiografie, liquidi penetranti, particelle magnetiche o ispezione visiva.",
+                B: "Esposizione radiazioni ionizzanti (RX); Contatto sostanze chimiche (PT, MT); Rumore e vibrazioni; Caduta dall’alto durante accessi ai componenti; Elettrocuzione da strumenti elettronici.",
+                C: "Assenza DPI chimici o radioprotezione (Art. 77); Mancanza addestramento operatori (Art. 37); Strumentazione non tarata (Art. 71); Segnalazione area radiologica assente (Art. 162).",
+                D: "Norme su radiazioni, sostanze chimiche, DPI e formazione operatori."
+            },
+            "82": {
+                titolo: "LAVORI ATEX (Zone 0-1-2 / 20-21-22)",
+                A: "Attività in atmosfere potenzialmente esplosive con polveri o gas, inclusi impianti elettrici e meccanici certificati ATEX.",
+                B: "Esplosione; Incendio; Contatto con superfici calde; Esposizione a gas tossici; Elettrocuzione.",
+                C: "Attrezzature non ATEX (Art. 70); Mancanza permessi (Art. 80); Assenza gas-free (Art. 66); Formazione insufficiente (Art. 37).",
+                D: "Norme su prevenzione esplosioni, certificazione attrezzature, permessi e DPI."
+            },
+            "83": {
+                titolo: "ISPEZIONI CON DRONI / AEROMOBILI A PILOTAGGIO REMOTO (APR)",
+                A: "Ispezioni visive o termografiche di strutture, torce, serbatoi, eolici, linee elettriche tramite droni.",
+                B: "Caduta drone su persone/impianti; Rischio elettrico (vicinanza linee); Intercettazione con velivoli; Lesioni oculari da laser termografico.",
+                C: "Permessi di volo mancanti (Art. 71); Assenza formazione piloti (Art. 37); Assenza di segnalazioni area volo (Art. 162); DPI operatori mancanti (Art. 77).",
+                D: "Norme su sicurezza macchine/attrezzature, formazione operatori e segnaletica."
+            },
+            "84": {
+                titolo: "MONTAGGIO APPARECCHIATURE ELETTRO-MEDICALI",
+                A: "Installazione, cablaggio, collaudo e manutenzione di apparecchiature elettriche e strumentali in ambito sanitario.",
+                B: "Rischio elettrico; Interferenze elettromagnetiche; Esposizione a radiazioni; Caduta dall’alto; Movimentazione carichi.",
+                C: "Operatori non qualificati (Art. 82); Attrezzature non certificate (Art. 71); Mancanza DPI (Art. 77); Assenza piani di collaudo (Art. 96).",
+                D: "Norme su rischio elettrico, DPI e certificazioni."
+            },
+            "85": {
+                titolo: "PAVIMENTAZIONI INDUSTRIALI (resine, calcestruzzo, spolvero quarzo)",
+                A: "Realizzazione e finitura di pavimentazioni industriali, rivestimenti in resina e sistemi a spolvero quarzo.",
+                B: "Inalazione polveri; Contatto con resine chimiche; Caduta in quota su scaffalature o gradini; Slittamento superfici bagnate; Sollevamento carichi pesanti.",
+                C: "DPI respiratori/guanti assenti (Art. 77); Ventilazione insufficiente (Art. 225); Attrezzature non certificate (Art. 71); Mancanza formazione (Art. 37).",
+                D: "Norme su chimico, polveri e DPI."
+            },
+            "86": {
+                titolo: "MONTAGGIO E MANUTENZIONE SCALE FISSE, PARAPETTI, GUARD-RAIL",
+                A: "Installazione e revisione di scale fisse, parapetti, corrimano e guard-rail di sicurezza.",
+                B: "Cadute dall’alto; Tagli durante assemblaggio; Schiacciamento parti; Inadeguato fissaggio materiali; Sollevamento carichi pesanti.",
+                C: "Mancanza DPI anticaduta (Art. 77); Assenza ancoraggi certificati (Art. 71); Lavori senza parapetto temporaneo (Art. 115); Formazione assente (Art. 37).",
+                D: "Norme su lavori in quota, DPI e ancoraggi."
+            },
+            "87": {
+                titolo: "PULIZIE INDUSTRIALI (detergenti, solventi, acidi)",
+                A: "Pulizia e sgrassaggio di aree, macchinari, o tubazioni con l'uso di detergenti, solventi o acidi concentrati.",
+                B: "Esposizione a vapori tossici/corrosivi; Ustioni chimiche; Incendi; Scivolamento; Contaminazione reflui.",
+                C: "DPI antichemici assenti (Art. 77); Schede sicurezza (SDS) mancanti (Art. 223); Ventilazione assente (Art. 225); Formazione specifica assente (Art. 37).",
+                D: "Norme su rischio chimico, DPI e ventilazione."
+            },
+            "88": {
+                titolo: "LAVORI SU STRUTTURE AEREE E PYLON (Torri e tralicci)",
+                A: "Manutenzione, montaggio e ispezione di torri, tralicci, antenne radio/TV, in alta quota.",
+                B: "Caduta dall’alto; Esposizione campi elettromagnetici; Collasso struttura; Sollevamento carichi con verricelli; Meteo avverso.",
+                C: "DPI anticaduta non conformi (Art. 77); Mancata verifica ancoraggi (Art. 71); Formazione specifica (Art. 116); Assenza di piano di soccorso (Art. 43).",
+                D: "Norme su lavori in quota, DPI e rischio elettromagnetico."
+            },
+            "89": {
+                titolo: "SOLLEVAMENTI COMPLESSI E MULTI-LIFT",
+                A: "Movimentazione carichi eccezionali o fuori sagoma con più gru, bracci articolati o impianti di sollevamento speciali.",
+                B: "Ribaltamento gru; Schiacciamento carichi; Collisione tra mezzi; Cedimento attacchi di sollevamento; Contatto con linee elettriche.",
+                C: "Calcolo carichi assente (Art. 71–72); DPI operatori mancanti (Art. 77); Segnalazioni area assenti (Art. 162); Formazione operatori non aggiornata (Art. 37).",
+                D: "Norme su sollevamenti complessi, calcoli carico e DPI."
+            },
+            "90": {
+                titolo: "LAVORI SU LINEE VITA E SISTEMI ANTICADUTA",
+                A: "Installazione, controllo, manutenzione e utilizzo di linee vita, ancoraggi e sistemi anticaduta temporanei o permanenti.",
+                B: "Caduta dall’alto; Errato ancoraggio; Usura materiali; Malfunzionamento moschettoni; Accesso non protetto.",
+                C: "DPI anticaduta mancanti (Art. 77); Ancoraggi non certificati (Art. 71); Formazione operatori assente (Art. 37); Controlli periodici non effettuati (Art. 71).",
+                D: "Norme su lavoro in quota, DPI e sistemi anticaduta."
+            },
+            "91": {
+                titolo: "MANUTENZIONE TURBINE E CENTRALI DI COMPRESSIONE",
+                A: "Interventi di manutenzione, revisione, sostituzione componenti di turbine e compressori industriali.",
+                B: "Contatto con superfici calde o in pressione; Schiacciamenti o intrappolamenti; Rumore elevato; Vibrazioni; Esposizione a oli e lubrificanti.",
+                C: "DPI assenti (Art. 77); Blocchi macchina non effettuati (Art. 71); Formazione assente (Art. 37); Procedure di manutenzione incomplete (Art. 66).",
+                D: "Norme su macchine, isolamento energetico e DPI."
+            },
+            "92": {
+                titolo: "INSTALLAZIONE PANNELLI FOTOVOLTAICI E SOLARI",
+                A: "Montaggio, cablaggio e messa in servizio di pannelli solari su coperture, tettoie o a terra.",
+                B: "Caduta dall’alto; Rischio elettrico da pannello attivo; Schiacciamento pannelli; Tagli da cornici; Incendio.",
+                C: "Lavori in quota non protetti (Art. 111); Impianti elettrici non a norma (Art. 80); DPI non idonei (Art. 77); Mancata messa in sicurezza elettrica (Art. 82).",
+                D: "Norme su lavori in quota, rischio elettrico e DPI."
+            },
+            "93": {
+                titolo: "INTERVENTI IN AREE MARITTIME E FLUVIALI (sponde, moli, ponti)",
+                A: "Lavori di manutenzione o costruzione in prossimità di acqua (mare, fiumi, bacini).",
+                B: "Rischio annegamento; Caduta in acqua; Collisione con mezzi marittimi; Esposizione a umidità e agenti corrosivi; Movimentazione carichi in prossimità.",
+                C: "DPI salvagente assenti (Art. 77); Barriere assenti (Art. 162); Formazione lavoratori mancata (Art. 37); Segnaletica e barriere assenti (Art. 162).",
+                D: "Norme su lavori in quota e in acqua, DPI e segnaletica."
+            },
+            "94": {
+                titolo: "ATTIVITÀ DI LABORATORIO INDUSTRIALE (chimico, fisico, materiali)",
+                A: "Analisi chimiche, fisiche e materiali in laboratorio industriale.",
+                B: "Contatto con sostanze chimiche pericolose; Esposizione a vapori tossici; Tagli e ferite; Incendi o esplosioni; Elettrocuzione strumentazione.",
+                C: "DPI chimici mancanti (Art. 77); Schede di sicurezza assenti (Art. 223); Formazione assente (Art. 37); Procedure di emergenza mancanti (Art. 18–28).",
+                D: "Norme su DPI, sostanze chimiche e procedure di sicurezza."
+            },
+            "95": {
+                titolo: "TEST DI TENUTA E PROVE SOTTOPRESSIONE",
+                A: "Verifiche di tenuta impianti, tubazioni e serbatoi con aria o acqua a pressione inferiore a quella operativa.",
+                B: "Rottura impianto; Proiezione fluidi; Contatto con superfici fredde o calde; Rumore da compressione; Caduta materiali.",
+                C: "DPI assenti (Art. 77); Procedure di prova assenti (Art. 66); Formazione operatori assente (Art. 37); Segnalazioni mancanti (Art. 162).",
+                D: "Norme su DPI, procedure di prova e formazione."
+            },
+            "96": {
+                titolo: "GESTIONE RIFIUTI SPECIALI E PERICOLOSI (CER, oli, fanghi, prodotti chimici)",
+                A: "Smaltimento, stoccaggio e movimentazione di rifiuti industriali e chimici pericolosi.",
+                B: "Contatto chimico; Inalazione vapori; Incendi o esplosioni; Contaminazione ambientale; Sversamenti.",
+                C: "DPI antichemici mancanti (Art. 77); Formazione assente (Art. 37); Stoccaggio non conforme (Art. 190); Documentazione assente (Art. 193).",
+                D: "Norme su rischio chimico, DPI, gestione rifiuti e formazione."
+            },
+            "97": {
+                titolo: "MANUTENZIONE IMPIANTI DI SCARICO E FOGNARI",
+                A: "Interventi su pozzetti, cunicoli, fognature per disostruzione, pulizia e ripristino.",
+                B: "Atmosfere tossiche/anossiche; Caduta in spazi confinati; Contatto con reflui biologici e chimici; Rumore; Investimento.",
+                C: "Spazi confinati non gestiti (Art. 66); DPI assenti (Art. 77); Formazione assente (Art. 37); Mancanza segnaletica (Art. 162).",
+                D: "Norme su spazi confinati, rischio chimico e DPI."
+            },
+            "98": {
+                titolo: "CURA DEL VERDE E AREE ESTERNE (taglio erba, potature)",
+                A: "Attività di giardinaggio, taglio erba, potatura alberi, diserbo chimico in aree industriali e di cantiere.",
+                B: "Tagli da motoseghe/decespugliatori; Caduta rami o alberi; Contatto chimico con diserbanti; Inalazione polveri; Cadute in pendenze o scarpate; Rumore da attrezzature.",
+                C: "DPI assenti (Art. 77); Formazione assente (Art. 37); Segnalazione area non prevista (Art. 162); Attrezzature non conformi (Art. 71).",
+                D: "Norme su DPI, formazione e attrezzature."
+            },
+            "99": {
+                titolo: "GESTIONE MAGAZZINI INDUSTRIALI (chimici, ricambi, stoccaggi)",
+                A: "Movimentazione, stoccaggio e gestione materiali, ricambi e prodotti chimici in magazzini industriali.",
+                B: "Sollevamento carichi pesanti; Contatto con sostanze chimiche; Scivolamento o caduta materiali; Ribaltamento scaffalature; Rumore da muletti o carrelli.",
+                C: "DPI assenti (Art. 77); Formazione assente (Art. 37); Segnaletica magazzino assente (Art. 162); Stoccaggio non conforme (Art. 71).",
+                D: "Norme su DPI, formazione e stoccaggio."
+            },
+            "100": {
+                titolo: "MANUTENZIONE ACCESSORI DI SOLLEVAMENTO (ganci, golfari, brache)",
+                A: "Controllo e manutenzione di ganci, golfari, catene e brache di sollevamento.",
+                B: "Cedimento accessori; Schiacciamento carichi; Tagli o abrasioni; Caduta materiali.",
+                C: "DPI assenti (Art. 77); Controlli non effettuati (Art. 71); Formazione assente (Art. 37); Segnalazioni mancanti (Art. 162).",
+                D: "Norme su DPI, sollevamento e controlli accessori."
+            },
+            "101": {
+                titolo: "CENTRALI TERMICHE E CALDAIE INDUSTRIALI",
+                A: "Gestione, manutenzione e controllo caldaie e centrali termiche industriali.",
+                B: "Ustioni; Esplosioni; Rilascio di gas; Atmosfere anossiche; Rumore e vibrazioni.",
+                C: "Procedure mancanti (Art. 66); Formazione assente (Art. 37); DPI assenti (Art. 77); Attrezzature non certificate (Art. 71).",
+                D: "Norme su procedure, DPI e attrezzature."
+            },
+            "102": {
+                titolo: "IMPIANTI IDRAULICI E PNEUMATICI (montaggio e manutenzione)",
+                A: "Installazione, collaudo e manutenzione di tubazioni, valvole, compressori e sistemi a pressione per acqua, aria o fluidi inerti.",
+                B: "Rottura tubazioni; Sovrapressione; Proiezione fluidi; Rumore; Schiacciamento.",
+                C: "DPI assenti (Art. 77); Procedure di lavoro assenti (Art. 66); Attrezzature non idonee (Art. 71); Formazione assente (Art. 37).",
+                D: "Norme su DPI, procedure e attrezzature."
+            },
+            "103": {
+                titolo: "MANUTENZIONE REATTORI E MISCELATORI INDUSTRIALI",
+                A: "Interventi di pulizia, revisione, e riparazione all'interno o all'esterno di reattori chimici e miscelatori.",
+                B: "Rilascio vapori chimici; Rischio esplosione; Spazi confinati; Schiacciamento da organi in movimento; Contatto con residui.",
+                C: "Procedure mancanti (Art. 66); Formazione assente (Art. 37); Controlli e segnalazioni assenti (Art. 162); DPI mancanti (Art. 77).",
+                D: "Norme su DPI, procedure e formazione."
+            },
+            "104": {
+                titolo: "FOGNATURE SPECIALI INDUSTRIALI (acque acide, reflui chimici)",
+                A: "Manutenzione e gestione reti fognarie industriali con acque acide o chimiche.",
+                B: "Contatto con sostanze corrosive; Inalazione vapori nocivi; Caduta in tombini; Corrosione attrezzature; Scivolamenti.",
+                C: "DPI chimici assenti (Art. 77); Formazione assente (Art. 37); Segnaletica assente (Art. 162); Procedure di emergenza assenti (Art. 18–28).",
+                D: "Norme su DPI, chimico e procedure."
+            },
+            "105": {
+                titolo: "LINEE PIPELINE LUNGHE DISTANZE",
+                A: "Costruzione, manutenzione e verifica di pipeline per trasporto fluidi su lunghe distanze.",
+                B: "Rottura tubazioni; Esplosione o incendio; Contatto con sostanze pericolose; Caduta in scavi o trincee; Sollevamento carichi.",
+                C: "DPI assenti (Art. 77); Formazione assente (Art. 37); Segnaletica e barriere assenti (Art. 162); Scavi non protetti (Art. 119).",
+                D: "Norme su DPI, scavi e rischio chimico/esplosivo."
+            },
+            "106": {
+                titolo: "INSTALLAZIONE E MANUTENZIONE ELETTRODOMESTICI E UTENZE CIVILI",
+                A: "Montaggio, cablaggio e riparazione di elettrodomestici e utenze elettriche in uffici e aree civili.",
+                B: "Rischio elettrico; Incendi; Caduta dall’alto; Schiacciamento; Rumore.",
+                C: "DPI assenti (Art. 77); Impianti non a norma (Art. 80); Formazione assente (Art. 37); Attrezzature non certificate (Art. 71).",
+                D: "Norme su rischio elettrico, DPI e attrezzature."
+            },
+            "107": {
+                titolo: "CONTROLLO E MANUTENZIONE VEICOLI E MEZZI D’OPERA",
+                A: "Ispezione, riparazione, rifornimento e lavaggio di automezzi, carrelli, gru e veicoli da cantiere.",
+                B: "Schiacciamento; Rischio incendio (rifornimento); Contatto oli e lubrificanti; Caduta da mezzi; Rischio biologico (lavaggio).",
+                C: "DPI assenti (Art. 77); Formazione assente (Art. 37); Attrezzature non idonee (Art. 71); Segnaletica assente (Art. 162).",
+                D: "Norme su DPI, attrezzature e formazione."
+            },
+            "108": {
+                titolo: "CYBER SICUREZZA E SISTEMI INFORMATICA DI IMPIANTI OT (SCADA, PLC, DCS)",
+                A: "Protezione e gestione sistemi di controllo industriale OT, PLC, SCADA e DCS.",
+                B: "Accesso non autorizzato; Malfunzionamenti impianti; Incidenti derivanti da cyber attacchi; Perdita dati di processo.",
+                C: "Procedure di sicurezza assenti (Art. 66); Formazione personale assente (Art. 37); DPI informatici non implementati (Art. 77).",
+                D: "Norme su procedure, formazione e DPI."
+            },
+            "109": {
+                titolo: "INSTALLAZIONE E MANUTENZIONE SCAMBIATORI DI CALORE",
+                A: "Montaggio, manutenzione e verifica di scambiatori di calore industriali.",
+                B: "Ustioni; Schiacciamento; Contatto con fluidi caldi o chimici; Caduta materiali; Rumore e vibrazioni.",
+                C: "DPI assenti (Art. 77); Blocchi macchina mancanti (Art. 71); Formazione assente (Art. 37); Procedure lavoro assenti (Art. 66).",
+                D: "Norme su DPI, sicurezza macchine e procedure."
+            },
+            "110": {
+                titolo: "MONTAGGIO E SMONTAGGIO PONTEGGI SPECIALI INDUSTRIALI",
+                A: "Installazione e smontaggio ponteggi speciali per cantieri industriali in quota.",
+                B: "Caduta dall’alto; Cedimento struttura; Schiacciamento materiali; Contatto con superfici taglienti; Sollevamento carichi pesanti.",
+                C: "Montaggio non conforme a PIMUS (Art. 134); Personale non formato (Art. 136); Mancata verifica ancoraggi (Art. 125); DPI anticaduta assenti (Art. 77).",
+                D: "Norme su lavori in quota, PIMUS e DPI."
+            }
+        };
+ 
+        // Unione di tutti i blocchi dati
+        const lavorazioni = { ...lavorazioni_1_44_51_56, ...lavorazioni_45_80, ...lavorazioni_81_110 };
+ 
+        const lavorazioniList = document.getElementById('lavorazioni-list');
+        const searchInput = document.getElementById('search-input');
+ 
+        function renderLavorazioni(filterText = '') {
+            lavorazioniList.innerHTML = '';
+            const filteredKeys = Object.keys(lavorazioni).filter(key => {
+                const data = lavorazioni[key];
+                const text = `${data.titolo} ${data.A} ${data.B} ${data.C} ${data.D}`.toLowerCase();
+                return text.includes(filterText.toLowerCase().trim());
+            });
+ 
+            filteredKeys.forEach(key => {
+                const data = lavorazioni[key];
+                const li = document.createElement('li');
+                li.innerHTML = `
+                    <div class="card" onclick="toggleCard(this)">
+                        <div class="card-header">
+                            <span>${key}.</span> ${data.titolo} <span class="arrow">></span>
+                        </div>
+                        <div class="card-content">
+                            <div class="detail-section">
+                                <h4>A. Breve descrizione dell’attività</h4>
+                                <p class="detail-text">${data.A}</p>
+                            </div>
+                            <div class="detail-section">
+                                <h4>B. Rischi dell’attività</h4>
+                                <ul class="detail-list risk">
+                                    ${data.B.split(';').map(item => `<li>${item.trim()}</li>`).join('')}
+                                </ul>
+                            </div>
+                            <div class="detail-section">
+                                <h4>C. Possibili non conformità + articoli 81/08</h4>
+                                <ul class="detail-list non-conformity">
+                                    ${data.C.split(';').map(item => `<li>${item.trim()}</li>`).join('')}
+                                </ul>
+                            </div>
+                            <div class="detail-section">
+                                <h4>D. Sintesi norme violate (Prevenzione)</h4>
+                                <p class="detail-text prevention">${data.D}</p>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                lavorazioniList.appendChild(li);
+            });
+        }
+ 
+        function toggleCard(card) {
+            const content = card.querySelector('.card-content');
+            const header = card.querySelector('.card-header');
+            if (content.style.display === "block") {
+                content.style.display = "none";
+                header.classList.remove('open');
+            } else {
+                content.style.display = "block";
+                header.classList.add('open');
+            }
+        }
+ 
+        searchInput.addEventListener('keyup', (e) => {
+            renderLavorazioni(e.target.value);
+        });
+ 
+        // Inizializza la visualizzazione
+        renderLavorazioni();
+ function goExternalHome() {
+    location.href = "SCC.html";
+}
+    </script>
+</body>
+</html>

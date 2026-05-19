@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<title>Seat Tracker Aereo</title>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>
+body {
+  font-family: Arial, sans-serif;
+  background: #e9edf2;
+  text-align: center;
+  margin: 0;
+  padding: 0;
+}
+
+/* CONTENITORE AEREO */
+#plane-wrapper {
+  width: 350px;
+  margin: 40px auto;
+  padding: 30px 10px;
+  border-radius: 80px;
+
+  /* fusoliera molto più larga dei posti */
+  background: linear-gradient(
+    to right,
+    #cfd6dd 0%,
+    #e5e9ee 10%,
+    #ffffff 35%,
+    #ffffff 65%,
+    #e5e9ee 90%,
+    #cfd6dd 100%
+  );
+
+  box-shadow:
+    inset 0 0 40px rgba(0,0,0,0.2),
+    0 10px 25px rgba(0,0,0,0.15);
+}
+
+/* GRIGLIA POSTI */
+.grid {
+  display: grid;
+  grid-template-columns: 20px repeat(6, 36px) 12px;
+  gap: 6px;
+  justify-content: center;
+  margin-bottom: 4px;
+}
+
+/* NUMERI FILA */
+.row-label {
+  font-size: 11px;
+  color: #6b7280;
+  text-align: right;
+  padding-right: 4px;
+}
+
+/* SEDILI BASE */
+.seat {
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  transition: all 0.15s ease;
+}
+
+/* COLORI REALISTICI */
+.gray {
+  background: #d9dde1;
+}
+
+.blue {
+  background: #2f6fc2;
+}
+
+.yellow {
+  background: #f2c230;
+}
+
+/* HOVER tipo app */
+.seat:hover {
+  transform: scale(1.05);
+  filter: brightness(1.1);
+  cursor: pointer;
+}
+
+/* POSTO SELEZIONATO */
+.x {
+  background: red !important;
+  color: white;
+  font-weight: bold;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+</style>
+
+</head>
+<body>
+   <div onclick="goExternalHome()" 
+       style="position:absolute; left:20px; top:10px; cursor:pointer;">
+    <svg xmlns="http://www.w3.org/2000/svg" width="50" height="50" fill="black" viewBox="0 0 24 24">
+      <path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/>
+    </svg>
+  </div>
+<h2>Inserisci volo</h2>
+<input type="date" id="data">
+<input type="text" id="compagnia" placeholder="Compagnia">
+<input type="text" id="posto" placeholder="Es: 12C">
+<button onclick="aggiungiPosto()">Aggiungi</button>
+
+<h2>Mappa Aereo</h2>
+
+<div id="plane-wrapper">
+  <div id="plane"></div>
+</div>
+
+<h2>Storico voli</h2>
+<table id="tabella" border="1" cellspacing="0" cellpadding="6" style="margin:0 auto; background:white;">
+  <tr>
+    <th>#</th>
+    <th>Data</th>
+    <th>Compagnia</th>
+    <th>Posto</th>
+  </tr>
+</table>
+<h2>Statistiche</h2>
+<canvas id="chart1"></canvas>
+<canvas id="chart2"></canvas>
+
+<script>
+const rows = 32;
+const seats = ['A','B','C','D','E','F'];
+
+let stats = { finestrino:0, centrale:0, corridoio:0 };
+let zoneStats = { avanti:0, centro:0, coda:0 };
+
+let storico = JSON.parse(localStorage.getItem("voli")) || [];
+function formatDataIT(dataISO){
+  if(!dataISO) return "";
+  let parts = dataISO.split("-");
+  return `${parts[2]}/${parts[1]}/${parts[0]}`;
+}
+function formatDataShort(dataISO){
+  if(!dataISO) return "";
+  let p = dataISO.split("-");
+  return `${p[2]}/${p[1]}/${p[0].slice(-2)}`;
+}
+ function goExternalHome() {
+    location.href = "SCC.html";
+}
+function creaAereo() {
+  const plane = document.getElementById('plane');
+  plane.innerHTML = '';
+
+  for (let r = 1; r <= rows; r++) {
+    let row = document.createElement('div');
+    row.className = 'grid';
+
+    let label = document.createElement('div');
+    label.className = 'row-label';
+    label.innerText = r;
+    row.appendChild(label);
+
+    seats.forEach(s => {
+      let div = document.createElement('div');
+      div.className = 'seat';
+
+      // COLORI ZONE
+      if (r <= 5) div.classList.add('gray');
+      else if (r <= 14) div.classList.add('blue');
+      else if (r <= 22) div.classList.add('yellow');
+      else div.classList.add('blue');
+
+      if (r == 16 || r == 17) div.classList.add('wide');
+
+      div.id = r + s;
+      row.appendChild(div);
+
+      if (s === 'C') {
+        let spacer = document.createElement('div');
+        row.appendChild(spacer);
+      }
+    });
+
+    plane.appendChild(row);
+  }
+}
+function aggiungiPosto() {
+  let data = document.getElementById('data').value;
+  let compagnia = document.getElementById('compagnia').value;
+  let posto = document.getElementById('posto').value.toUpperCase();
+
+  if (!data || !compagnia || !posto) return;
+
+  let seat = document.getElementById(posto);
+  if (!seat) return;
+
+  // ✅ segna il posto sulla mappa (una sola volta)
+  if (!seat.classList.contains('x')) {
+    seat.classList.add('x');
+    seat.innerText = 'X';
+  }
+
+  // ✅ REGISTRA SEMPRE IL VOLO (anche stesso posto)
+  storico.push({ data, compagnia, posto });
+  localStorage.setItem("voli", JSON.stringify(storico));
+
+  aggiornaTabella();
+  aggiornaStatistiche(posto);
+}
+function aggiornaTabella() {
+  let table = document.getElementById('tabella');
+
+  // intestazione
+  table.innerHTML = `
+    <tr>
+      <th>#</th>
+      <th>Data</th>
+      <th>Compagnia</th>
+      <th>Posto</th>
+    </tr>
+  `;
+
+  // ✅ ordine: dal più vecchio al più recente
+  storico.sort((a, b) => new Date(a.data) - new Date(b.data));
+
+  storico.forEach((v, index) => {
+    let row = table.insertRow();
+
+    // numero progressivo
+    row.insertCell(0).innerText = index + 1;
+
+    // data GG/MM/AA
+    row.insertCell(1).innerText = formatDataShort(v.data);
+
+    // compagnia
+    row.insertCell(2).innerText = v.compagnia;
+
+    // posto
+    row.insertCell(3).innerText = v.posto;
+  });
+}
+function aggiornaStatistiche(posto) {
+  let lettera = posto.slice(-1);
+  let fila = parseInt(posto);
+
+  // tipo posto
+  if (lettera=='A'||lettera=='F') stats.finestrino++;
+  else if (lettera=='B'||lettera=='E') stats.centrale++;
+  else stats.corridoio++;
+
+  // zona
+  if (fila <= 10) zoneStats.avanti++;
+  else if (fila <= 22) zoneStats.centro++;
+  else zoneStats.coda++;
+
+  chart1.data.datasets[0].data = Object.values(stats);
+  chart2.data.datasets[0].data = Object.values(zoneStats);
+
+  chart1.update();
+  chart2.update();
+}
+let chart1 = new Chart(document.getElementById('chart1'), {
+  type:'pie',
+  data:{
+    labels:['Finestrino','Centrale','Corridoio'],
+    datasets:[{ data:[0,0,0] }]
+  },
+  options:{ responsive:false }
+});
+let chart2 = new Chart(document.getElementById('chart2'), {
+  type:'pie',
+  data:{
+    labels:['Avanti','Centro','Coda'],
+    datasets:[{ data:[0,0,0] }]
+  },
+  options:{ responsive:false }
+});
+function caricaStorico() {
+  aggiornaTabella();
+
+  storico.forEach(v => {
+    aggiornaStatistiche(v.posto);
+    let seat = document.getElementById(v.posto);
+    if (seat) {
+      seat.classList.add('x');
+      seat.innerText = 'X';
+    }
+  });
+}
+creaAereo();
+caricaStorico();
+</script>
+
+</body>
+</html>
