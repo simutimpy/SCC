@@ -1,0 +1,764 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<title>Gestione Personale</title>
+
+<style>
+:root {--eni-yellow: #ffd200;--eni-black: #000000;--eni-blue: #003a8f;}
+#azioni { margin-top: 38px;   /* ✅ allinea con intestazione tabella */}   
+.footer {position:fixed;bottom:10px;right:10px;font-size:12px;color:#666;}
+/* HEADER */
+#boxScadenze {display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;}
+.colonna {display:flex;flex-direction:column;}
+#scaduti {border-left:5px solid red;}
+#scadenza {border-left:5px solid orange;}
+header {background: var(--eni-blue);color: white;padding: 15px;text-align: center;font-weight: bold;}
+button {padding:10px;margin:5px;border:none;background:#2563eb;color:white;cursor:pointer;}
+/* ICONA */
+.print-btn { font-size:30px; }
+/* LAYOUT TESTATA */
+.top-bar {display:flex;align-items:center;justify-content:space-between;}
+.left-box {display:flex;align-items:center;gap:10px;}
+.logo {max-height:70px;}
+#scaduti, #scadenza { background: white;padding: 10px; border-left: 5px solid var(--eni-black); max-height: 200px;   /* ✅ scroll */overflow-y: auto;font-size: 13px;}
+#ditte {display: grid;grid-template-columns: repeat(3, 1fr); /* ✅ 3 colonne */gap: 8px;}
+#ditte div { background: white; padding: 8px; border-left: 5px solid var(--eni-yellow); display: flex; justify-content: space-between; align-items: center;}
+#ditte button { background: transparent; color: var(--eni-black); font-weight: bold; font-size: 16px;   /* ✅ più grande */}
+#ditte div span,
+#ditte div button { margin-left: 6px;}
+.sospesa { background: #f3f3f3 !important; border-left: 5px solid grey !important;}
+/* CENTRO */
+.centro {text-align:center;margin-top:10px;}
+/* TABELLA */
+table {width:100%;border-collapse:collapse;margin-top:10px;background:white;}
+th {background:#111827;color:white;}
+td {border:1px solid #ccc;padding:4px;text-align:center;}
+/* INPUT */
+#azioni span {font-size: 16px; cursor: pointer;}
+#azioni span:hover { transform: scale(1.2);}
+input[type="date"] {width:130px;border:none;background:transparent;}
+input[type="text"] { width: 100%; height: 100%; text-align: center; box-sizing: border-box;}
+/* COLORI LIVE */
+.rosso { background:red; color:white; }
+.giallo { background:yellow; }
+.testo-rosso {color:red !important;}
+.testo-giallo {color:#c9a700 !important;}
+/* LAMPEGGIO (solo schermo) */
+@keyframes blink { 50% {opacity:0;} }
+.blink { animation: blink 1s infinite; }
+/* PAGINE */
+.page { display:none; }
+.active { display:block; }
+/* ===== STAMPA ===== */
+.print-date {display:none;}
+/* ✅ TABELLA NORMALE */
+table { width:100%; border-collapse:collapse; margin-top:10px; background:white;}
+th { background:#111827; color:white;}
+td {border:1px solid #ccc; padding:4px; text-align:center;}
+@media print {
+body {margin:0 !important;padding:0 !important;}
+@page {size:landscape;margin-top:10mm;margin-bottom:8mm;margin-left:10mm;margin-right:10mm;}
+body * {visibility:hidden;}
+#azienda,#azienda * {visibility:visible;}
+.footer,.homeIcon,.topbar,button,.print-btn,input,select,input[type="file"],#azioni {display:none !important;}
+tr[style*="opacity"] {display:none !important;}
+#azienda {position:absolute;top:0;left:0;width:100%;margin:0;padding:0;font-size:14px;}
+#azienda h2 {margin:0;padding:0;line-height:1;}
+#azienda .centro {margin:2px 0;line-height:1;}
+#azienda table {width:100%;border-collapse:collapse;border:2px solid black;margin-top:0;}
+#azienda th,#azienda td {border:1px solid black;background:white !important;color:black !important;padding:2px;}
+#azienda th:last-child,#azienda td:last-child {border-right:2px solid black;}
+#azienda tr:last-child td {border-bottom:2px solid black;}
+#azienda thead tr:first-child th {border-top:2px solid black;}
+#azienda td:nth-child(1),#azienda td:nth-child(2),#azienda td:nth-child(8) {text-align:left !important;padding-left:5px;}
+.print-date {display:inline;color:black;}
+td.print-red .print-date {color:red !important;}
+td.print-yellow .print-date {color:#c9a700 !important;}
+td.print-black .print-date {color:black !important;}
+.blink {animation:none !important;}
+}
+
+</style>
+</head>
+<body>
+<div id="homePage">
+<div class="topbar">
+  <div class="homeIcon" onclick="goExternalHome()">
+    <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" fill="black" viewBox="0 0 24 24">
+      <path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/>
+    </svg>
+  </div>
+</div>
+<div class="footer">
+  BY Simone Lacognata
+</div>
+<header>
+<h2>Gestione Personale in Cantiere</h2>
+</header>
+<!-- HOME -->
+<div class="page active" id="home">
+<div id="boxScadenze">
+<div class="colonna"><h3>🔴 Scaduti</h3><div id="scaduti"></div></div>
+<div class="colonna"><h3>🟡 In scadenza (20 giorni)</h3><div id="scadenza"></div></div></div>
+<button onclick="stampaScadenze()">🖨️ Stampa Scadenze</button>
+<h3>Ditte</h3>
+<div id="ditte"></div>
+<button onclick="nuovaDitta()">+ Aggiungi Ditta</button>
+</div>
+<button onclick="esportaBackup()">💾 Crea Backup</button>
+<input type="file" id="importFile" style="display:none" onchange="importaBackup(event)">
+<button onclick="document.getElementById('importFile').click()">📂 Ripristina Backup</button>
+<!-- AZIENDA -->
+<div class="page" id="azienda">
+
+<button onclick="tornaHome()">⬅ Torna</button>
+<button class="print-btn" onclick="window.print()">🖨️</button>
+<div class="top-bar">
+    <div class="left-box">
+        <h2 id="nomeDitta"></h2>
+        <img id="logo" class="logo">
+    </div>
+</div>
+<input type="file" accept="image/*" onchange="caricaLogo(event)">
+<p class="centro">
+    Ultimo aggiornamento: <span id="update"></span>
+</p>
+<button onclick="aggiungi()">+ Nuovo</button>
+<!-- ✅ CONTENITORE DOPPIO -->
+<div style="display:flex; gap:10px; align-items:flex-start;">
+    <!-- ✅ TABELLA -->
+    <table id="tabella">
+        <thead>
+            <tr>
+                <th>Cognome</th>
+                <th>Nome</th>
+                <th>Preposto</th>
+                <th>Antincendio</th>
+                <th>Primo Soccorso</th>
+                <th>DPI 3° Cat</th>
+                <th>PLE</th>
+                <th>GST</th>
+                <th>Accesso</th>
+                <th>Patto</th>
+                <th>Briefing</th>
+            </tr>
+        </thead>
+        <tbody id="tbody"></tbody>
+    </table>
+    <!-- ✅ COLONNA BOTTONI -->
+    <div id="azioni"></div>
+</div>
+<div id="printScadenze" style="display:none;"></div>
+<script>
+/* ===== STORAGE ===== */
+let aziende = JSON.parse(localStorage.getItem("aziende")) || {};
+let loghi = JSON.parse(localStorage.getItem("loghi")) || {};
+let statiDitte = JSON.parse(localStorage.getItem("statiDitte")) || {};
+function salva(){
+    localStorage.setItem("aziende", JSON.stringify(aziende));
+    localStorage.setItem("loghi", JSON.stringify(loghi));
+    localStorage.setItem("statiDitte", JSON.stringify(statiDitte)); // ✅
+}
+let current = "";
+/* ===== DATE ===== */
+function formatDate(d){
+    if(!d) return "";
+    let x=new Date(d);
+    return ("0"+x.getDate()).slice(-2)+"/"+
+           ("0"+(x.getMonth()+1)).slice(-2)+"/"+
+           x.getFullYear();
+}
+function parseDate(s){
+    if(!s) return null;
+    let [g,m,a]=s.split("/");
+    return new Date(a,m-1,g);
+}
+function toInput(s){
+    if(!s) return "";  // ✅ campo vuoto vero
+    let [g,m,a]=s.split("/");
+    return `${a}-${m}-${g}`;
+}
+/* ===== HOME ===== */
+function caricaHome(){
+
+    let div = document.getElementById("ditte");
+    div.innerHTML = "";
+
+    Object.keys(aziende)
+    .sort((a,b)=>a.localeCompare(b))
+    .forEach(a=>{
+
+        /* ✅ se non esiste lo stato → attivo */
+        if(!statiDitte[a]){
+            statiDitte[a] = "attiva";
+        }
+        /* ✅ nasconde ditte sospese */
+        let container = document.createElement("div");
+        container.style.marginBottom = "5px";
+
+        /* ✅ bottone ditta */
+        let b = document.createElement("button");
+        b.innerText = a;
+        b.onclick = ()=>apri(a);
+
+        /* ✅ bottone sospendi / riattiva */
+        let statoBtn = document.createElement("span");
+        statoBtn.style.cursor = "pointer";
+        statoBtn.style.marginLeft = "5px";
+
+/* ✅ controllo stato */
+/* ✅ stato sospesa (grafica) */
+if(statiDitte[a] === "sospesa"){
+    container.classList.add("sospesa");
+}
+
+/* ✅ bottone pausa/play */
+if(statiDitte[a] === "sospesa"){
+
+    statoBtn.innerText = "▶";   // PLAY
+    statoBtn.style.color = "green";
+
+    statoBtn.onclick = (e)=>{
+        e.stopPropagation();
+        statiDitte[a] = "attiva";
+        salva();
+        caricaHome();
+    };
+
+} else {
+
+    statoBtn.innerText = "⏸";   // PAUSA
+    statoBtn.style.color = "orange";
+
+    statoBtn.onclick = (e)=>{
+        e.stopPropagation();
+
+        if(!confirm("Sospendere ditta?")) return;
+
+        statiDitte[a] = "sospesa";
+        salva();
+        caricaHome();
+    };
+}
+        /* ✅ bottone elimina (solo X) */
+        let eliminaBtn = document.createElement("button");
+        eliminaBtn.innerText = "×";
+        eliminaBtn.style.marginLeft = "5px";
+        eliminaBtn.style.background = "transparent";
+        eliminaBtn.style.color = "red";
+        eliminaBtn.style.fontWeight = "bold";
+        eliminaBtn.style.border = "none";
+        eliminaBtn.style.cursor = "pointer";
+        eliminaBtn.style.fontSize = "18px";
+
+        eliminaBtn.onclick = (e)=>{
+            e.stopPropagation();
+
+            if(!confirm("Sei sicuro di voler cancellare la ditta " + a + "?")) return;
+
+            delete aziende[a];
+            delete loghi[a];
+            delete statiDitte[a];
+
+            salva();
+            caricaHome();
+        };
+
+        /* ✅ aggiunta elementi */
+        container.appendChild(b);
+        container.appendChild(statoBtn);
+        container.appendChild(eliminaBtn);
+
+        div.appendChild(container);
+    });
+
+    /* ✅ aggiorna scadenze */
+    mostraScadenze();
+}
+/* ===== SCADENZE ===== */
+function mostraScadenze(){
+
+    let oggi=new Date();
+    let scaduti=[];
+    let prossimi=[];
+
+    for(let a in aziende){
+        /* ✅ SALTA DITTE SOSPESE */
+        if(statiDitte[a] === "sospesa") continue;
+        aziende[a].forEach(r=>{ if(r.stato === "sospeso") return;
+            if(!r.accesso) return;
+            let d=parseDate(r.accesso);
+            let diff=(d-oggi)/(1000*60*60*24);
+            let nome = `${r.cognome} ${r.nome} (${a}) ${r.gst ? "- " + r.gst : ""}`;            if(diff < 0){
+                scaduti.push(nome);
+            } else if(diff <= 20){
+                prossimi.push(nome);
+            }
+        });
+    }
+    document.getElementById("scaduti").innerHTML =
+        scaduti.length ? scaduti.join("<br>") : "Nessuno";
+
+    document.getElementById("scadenza").innerHTML =
+        prossimi.length ? prossimi.join("<br>") : "Nessuno";
+}
+/* ===== DITTE ===== */
+function nuovaDitta(){
+    let n=prompt("Nome ditta");
+    if(n){
+        aziende[n]=[];
+        statiDitte[n] = "attiva";   // ✅ nuovo
+        salva();
+        caricaHome();
+    }
+}
+/* ===== APRI ===== */
+function apri(nome){
+    current=nome;
+
+    document.getElementById("home").classList.remove("active");
+    document.getElementById("azienda").classList.add("active");
+
+    document.getElementById("nomeDitta").innerText=nome;
+    document.getElementById("update").innerText=formatDate(new Date());
+
+    document.getElementById("logo").src = loghi[nome] || "";
+
+    aggiorna();
+}
+/* ===== TORNA ===== */
+function tornaHome(){
+    document.getElementById("azienda").classList.remove("active");
+    document.getElementById("home").classList.add("active");
+    caricaHome();
+}
+/* ===== LOGO ===== */
+function caricaLogo(e){
+    let file=e.target.files[0];
+    let reader=new FileReader();
+
+    reader.onload=function(){
+        loghi[current]=reader.result;
+        document.getElementById("logo").src=reader.result;
+        salva();
+    };
+    reader.readAsDataURL(file);
+}
+/* ===== AGGIUNGI ===== */
+function aggiungi(){
+aziende[current].push({
+    cognome:"", nome:"",
+    preposto:"", antincendio:"", primo:"",
+    dpi:"", ple:"", gst:"", accesso:"",
+    patto:"",briefing:"",
+    stato:"attivo"   // ✅ NUOVO
+});
+    salva();
+    aggiorna();
+}
+/* ===== UTILS ===== */
+function diffGiorni(s){
+    let d=parseDate(s);
+    if(!d) return null;
+    return (d-new Date())/(1000*60*60*24);
+}
+function diffBriefing(s){
+    let d=parseDate(s);
+    if(!d) return null;
+    return (d-new Date())/(1000*60*60*24);
+}
+/* ===== TABELLA ===== */
+function aggiorna(){
+
+    let tb = document.getElementById("tbody");
+    tb.innerHTML = "";
+
+    let azioniDiv = document.getElementById("azioni");
+    azioniDiv.innerHTML = "";
+
+    // ✅ ORDINAMENTO: data accesso + cognome
+    aziende[current].sort((a,b)=>{
+        let da = parseDate(a.accesso);
+        let db = parseDate(b.accesso);
+
+        // ✅ entrambi senza data → ordina per cognome
+        if(!da && !db){
+            return (a.cognome || "").localeCompare(b.cognome || "");
+        }
+
+        // ✅ chi non ha data va sotto
+        if(!da) return 1;
+        if(!db) return -1;
+
+        // ✅ prima per data
+        let diffDate = da - db;
+        if(diffDate !== 0) return diffDate;
+
+        // ✅ poi per cognome
+        return (a.cognome || "").localeCompare(b.cognome || "");
+    });
+
+    aziende[current].forEach((r,i)=>{
+        let tr = document.createElement("tr");
+
+        // ✅ lavoratore sospeso → grigio
+        if(r.stato === "sospeso"){
+            tr.style.opacity = "0.4";
+        }
+
+        let diffAccesso = diffGiorni(r.accesso);
+
+        // ✅ colori riga
+        if(r.stato !== "sospeso" && diffAccesso !== null){
+            if(diffAccesso < 0){
+                tr.classList.add("rosso");
+            } else if(diffAccesso <= 20){
+                tr.classList.add("giallo");
+            }
+        }
+
+        // ✅ lampeggio preposto
+        let lampeggia = (
+            r.preposto &&
+            (diffGiorni(r.preposto)<0 ||
+             diffGiorni(r.antincendio)<0 ||
+             diffGiorni(r.primo)<0)
+        );
+
+        // ✅ funzione celle
+function cella(data, campo){
+
+    let diff = diffGiorni(data);
+    let classeStampa = "";
+    let classeTesto = "";
+
+    // ✅ soglia diversa per Briefing
+    if(diff !== null && campo !== "patto"){
+
+        let soglia = (campo === "briefing") ? 7 : 20;
+
+        if(diff < 0){
+            classeStampa = "print-red";
+        } else if(diff <= soglia){
+            classeStampa = "print-yellow";
+        }
+    }
+
+    // ✅ colori testo
+    if(
+        campo === "preposto" ||
+        campo === "antincendio" ||
+        campo === "primo" ||
+        campo === "dpi" ||
+        campo === "ple" ||
+        campo === "briefing"
+    ){
+
+        if(diff !== null){
+
+            let soglia = (campo === "briefing") ? 7 : 20;
+
+            if(diff < 0){
+                classeTesto = "testo-rosso";
+            } else if(diff <= soglia){
+                classeTesto = "testo-giallo";
+            }
+        }
+    }
+
+    // ✅ lampeggio preposto
+    if(campo === "preposto" && lampeggia){
+        classeStampa = "print-red";
+    }
+
+    return `
+        <td class="${classeStampa} ${campo==='preposto' && lampeggia ? 'blink' : ''}">
+            <input
+                type="text"
+                class="${classeTesto}"
+                value="${data || ''}"
+                onblur="saveManualDate(${i},'${campo}',this.value)">
+            <span class="print-date">${data || ""}</span>
+        </td>
+    `;
+}
+tr.innerHTML = `
+<td contenteditable oninput="save(${i},'cognome',this.innerText)">
+    ${r.cognome}
+</td>
+<td contenteditable oninput="save(${i},'nome',this.innerText)">
+    ${r.nome}
+</td>
+${cella(r.preposto,'preposto')}
+${cella(r.antincendio,'antincendio')}
+${cella(r.primo,'primo')}
+${cella(r.dpi,'dpi')}
+${cella(r.ple,'ple')}
+
+<td>
+<select onchange="save(${i},'gst',this.value)">
+<option value=""></option>
+<option ${r.gst=="C.I."?"selected":""}>C.I.</option>
+<option ${r.gst=="Form 81/08"?"selected":""}>Form 81/08</option>
+<option ${r.gst=="UNILAV"?"selected":""}>UNILAV</option>
+<option ${r.gst=="IDONEITA' SAN"?"selected":""}>IDONEITA' SAN</option>
+<option ${r.gst=="DPI"?"selected":""}>DPI</option>
+<option ${r.gst=="RIC. ACCESSI"?"selected":""}>RIC. ACCESSI</option>
+</select>
+<span class="print-date">${r.gst === "IDONEITA' SAN" ? "IDONEITA' SAN" : (r.gst || "")}</span>
+</td>
+
+${cella(r.accesso,'accesso')}
+${cella(r.patto,'patto')}
+${cella(r.briefing,'briefing')}
+`;
+
+        tb.appendChild(tr);
+
+        // ✅ BOTTONI
+        let azioneRiga = document.createElement("div");
+        azioneRiga.style.display = "flex";
+        azioneRiga.style.alignItems = "center";
+        azioneRiga.style.justifyContent = "center";
+
+        setTimeout(()=>{
+            azioneRiga.style.height = tr.offsetHeight + "px";
+            azioneRiga.style.borderBottom = "1px solid transparent";
+        },0);
+
+        let pausa = document.createElement("span");
+        pausa.style.cursor = "pointer";
+
+        if(r.stato === "sospeso"){
+            pausa.innerText = "▶";
+            pausa.onclick = ()=>{
+                aziende[current][i].stato = "attivo";
+                salva();
+                aggiorna();
+            };
+        } else {
+            pausa.innerText = "⏸";
+            pausa.onclick = ()=>{
+                if(!confirm("Sospendere lavoratore?")) return;
+                aziende[current][i].stato = "sospeso";
+                salva();
+                aggiorna();
+            };
+        }
+
+        let elimina = document.createElement("span");
+        elimina.innerText = "×";
+        elimina.style.color = "red";
+        elimina.style.cursor = "pointer";
+        elimina.onclick = ()=>{
+            if(!confirm("Eliminare lavoratore?")) return;
+            aziende[current].splice(i,1);
+            salva();
+            aggiorna();
+        };
+
+        azioneRiga.appendChild(pausa);
+        azioneRiga.appendChild(elimina);
+        document.getElementById("azioni").appendChild(azioneRiga);
+
+    });
+}
+function saveManualDate(i,campo,val){
+
+    if(!val){
+        aziende[current][i][campo] = "";
+        salva();
+        return;
+    }
+
+    /* ✅ pulizia input */
+    val = val.trim();
+
+    /* ✅ divide giorno/mese/anno */
+    let parts = val.split("/");
+
+    if(parts.length < 2) return;
+
+    let g = parts[0];
+    let m = parts[1];
+    let a = parts[2] || new Date().getFullYear();
+
+    /* ✅ sistema anno corto */
+    if(a.length === 2){
+        a = "20" + a;
+    }
+
+    /* ✅ aggiunge zeri */
+    g = g.padStart(2,"0");
+    m = m.padStart(2,"0");
+
+let dataFinale = `${g}/${m}/${a}`;
+
+// ✅ Briefing = data inserita + 6 mesi
+if(campo === "briefing"){
+
+    let [g,m,a] = dataFinale.split("/");
+
+    let data = new Date(a, m - 1, g);
+
+    data.setMonth(data.getMonth() + 6);
+
+    let gg = String(data.getDate()).padStart(2,"0");
+    let mm = String(data.getMonth() + 1).padStart(2,"0");
+    let aa = data.getFullYear();
+
+    dataFinale = `${gg}/${mm}/${aa}`;
+}
+
+aziende[current][i][campo] = dataFinale;
+
+salva();
+aggiorna();
+}
+/* ===== SAVE ===== */
+function save(i,campo,val){
+    aziende[current][i][campo]=val;
+    salva();
+}
+function saveDate(i,campo,val){
+    aziende[current][i][campo]=formatDate(val);
+    salva();
+    aggiorna();
+}
+caricaHome();
+function goExternalHome(){window.location.href = "home gst.html";}
+function sospendiLav(i,e){
+    e.stopPropagation();
+
+    let conferma = confirm("Sospendere questo lavoratore?");
+    if(!conferma) return;
+
+    aziende[current][i].stato = "sospeso";
+
+    salva();
+    aggiorna();
+}
+function eliminaLav(i,e){
+    e.stopPropagation();
+
+    let conferma = confirm("Eliminare questo lavoratore?");
+    if(!conferma) return;
+
+    aziende[current].splice(i,1);
+
+    salva();
+    aggiorna();
+}
+function stampaScadenze(){
+
+let oggi=new Date();
+let contenuto="<h3 style='color:red;'>SCADUTI</h3>";
+
+for(let a in aziende){
+if(statiDitte[a]==="sospesa") continue;
+
+aziende[a].forEach(r=>{
+
+if(r.stato==="sospeso"||!r.accesso) return;
+
+let d=parseDate(r.accesso);
+let diff=(d-oggi)/(1000*60*60*24);
+
+if(diff<0){
+contenuto+=`<div>${r.cognome} ${r.nome} (${a}) ${r.gst||""}</div>`;
+}
+
+});
+}
+
+contenuto+="<h3 style='color:#c9a700;'>IN SCADENZA</h3>";
+
+for(let a in aziende){
+if(statiDitte[a]==="sospesa") continue;
+
+aziende[a].forEach(r=>{
+
+if(r.stato==="sospeso"||!r.accesso) return;
+
+let d=parseDate(r.accesso);
+let diff=(d-oggi)/(1000*60*60*24);
+
+if(diff>=0 && diff<=20){
+contenuto+=`<div>${r.cognome} ${r.nome} (${a}) ${r.gst||""}</div>`;
+}
+
+});
+}
+
+/* ✅ APRE NUOVA SCHEDA (STABILE) */
+let win=window.open("","_blank");
+
+win.document.write(`
+<html>
+<head>
+<title>Scadenze</title>
+<style>
+body{font-family:Arial;padding:10px;}
+h3{margin-bottom:6px;}
+div{margin-bottom:3px;}
+</style>
+</head>
+<body>${contenuto}</body>
+</html>
+`);
+
+win.document.close();
+win.print();
+}
+// ===== BACKUP =====
+// ===== BACKUP =====
+// ===== BACKUP =====
+function esportaBackup(){
+    let dati = {
+        aziende,
+        loghi,
+        statiDitte
+    };
+
+    let json = JSON.stringify(dati);
+    let blob = new Blob([json], { type: "application/json" });
+
+    let url = URL.createObjectURL(blob);
+    let a = document.createElement("a");
+
+    a.href = url;
+    a.download = "backup_ditte.json";
+    a.click();
+
+    URL.revokeObjectURL(url);
+}
+// ===== IMPORT =====
+function importaBackup(event){
+    let file = event.target.files[0];
+    if(!file) return;
+
+    let reader = new FileReader();
+
+    reader.onload = function(e){
+        try{
+            let dati = JSON.parse(e.target.result);
+
+            aziende = dati.aziende || {};
+            loghi = dati.loghi || {};
+            statiDitte = dati.statiDitte || {};
+
+            salva();
+            alert("✅ Backup caricato!");
+            location.reload();
+
+        } catch(err){
+            alert("❌ Errore nel file!");
+        }
+    };
+
+    reader.readAsText(file);
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,867 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Gestione Scadenze</title>
+<style>
+body{margin:0;font-family:Arial,sans-serif;background:#f4f4f4;}
+header{background:#008542;color:#fff;padding:15px;font-size:24px;font-weight:bold;}
+.homeIcon { cursor:pointer; display:inline-flex; align-items:center; justify-content:center; }
+.footer { position:fixed; bottom:10px; left:10px; font-size:12px; color:#666;}
+.container{display:flex;height:calc(100vh - 60px);}
+.sidebar{width:250px;background:#fff;border-right:1px solid #ccc;overflow:auto;padding:10px;}
+.main{flex:1;padding:20px;overflow:auto;}
+button{background:#008542;color:#fff;border:none;padding:10px;cursor:pointer;border-radius:5px;}
+button:hover{background:#006633;}
+input,select{width:100%;padding:8px;margin-bottom:10px;}
+table{width:100%;border-collapse:collapse;background:#fff;table-layout:fixed;}
+th,td{border:1px solid #999;padding:5px;text-align:center;}
+th{background:#efefef;}th,td{border:1px solid #999;padding:5px;text-align:center;word-wrap:break-word;overflow-wrap:break-word;}
+.cardsGrid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;}
+.card{background:#fff;padding:15px;border-radius:10px;margin-bottom:0;}
+.scaduto{border-left:6px solid #d10000;}
+.scadenza{border-left:6px solid #ff9900;}
+.ok{border-left:6px solid #008542;}
+.pageTitle{font-size:26px;font-weight:bold;text-align:center;margin-bottom:20px;}
+.logo{
+  position:absolute;
+  left:0;
+  top:10px;
+  max-width:120px;
+  max-height:45px;
+  object-fit:contain;
+}
+.menuItem{background:#efefef;margin-bottom:5px;cursor:pointer;padding:10px;}
+.menuItem:hover{background:#ddd;}
+h2{margin-top:0;}
+h3{margin:10px 0;}
+label{display:block;font-size:13px;font-weight:bold;margin-bottom:4px;}
+.card b{font-size:15px;}
+td input{
+  width:100%;
+  border:none;
+  background:transparent;
+  padding:4px;
+  margin:0;
+  box-sizing:border-box;
+  text-align:center;
+}
+td input:focus{
+  background:#ffffcc;
+  outline:1px solid #008542;
+}
+</style>
+</head>
+<body>
+  <div class="topbar">
+  <div class="homeIcon" onclick="goExternalHome()">
+    <svg xmlns="http://www.w3.org/2000/svg" width="60" height="60" fill="black" viewBox="0 0 24 24">
+      <path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/>
+    </svg>
+  <div class="footer">
+  BY Simone Lacognata
+  </div>
+  </div>
+<header>
+GESTIONE SCADENZE
+</header>
+<div class="container">
+<div class="sidebar">
+<button onclick="showHome()">🏠 Dashboard</button>
+<hr>
+<h3>Nuova Verifica</h3>
+<input id="newPageName" placeholder="Nome verifica">
+<label>Colonne aggiuntive</label>
+<input id="newColumns" type="number" min="0" value="0"
+placeholder="Quante colonne aggiuntive?">
+<button onclick="createPage()">
+Crea Pagina
+</button>
+<hr>
+<div id="pagesList"></div>
+</div>
+<div class="main">
+<div id="content"></div>
+</div>
+</div>
+<script>
+ 
+let pages=JSON.parse(localStorage.getItem("pages"))||[];
+const logoEni=`data:image/png;base64,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`;
+const mesi = {
+  gennaio: 1,
+  febbraio: 2,
+  marzo: 3,
+  aprile: 4,
+  maggio: 5,
+  giugno: 6,
+  luglio: 7,
+  agosto: 8,
+  settembre: 9,
+  ottobre: 10,
+  novembre: 11,
+  dicembre: 12
+};
+function confrontaTitoli(a,b){
+
+ let ta=(a.titolo||"").trim().toLowerCase();
+ let tb=(b.titolo||"").trim().toLowerCase();
+
+ let meseA=mesi[ta];
+ let meseB=mesi[tb];
+
+ // entrambi sono mesi
+ if(meseA && meseB){
+   return meseA-meseB;
+ }
+
+ // solo A è un mese
+ if(meseA){
+   return -1;
+ }
+
+ // solo B è un mese
+ if(meseB){
+   return 1;
+ }
+
+ // entrambi non sono mesi
+ return ta.localeCompare(tb,"it",{sensitivity:"base"});
+}
+function saveData(){
+localStorage.setItem(
+"pages",
+JSON.stringify(pages)
+);
+}
+function showHome(){
+
+let paginaSelezionata = pages.length ? pages[0] : null;
+
+let nomeTitolo =
+paginaSelezionata?.nomeTitolo || "Titolo";
+
+let nomeDescrizione =
+paginaSelezionata?.nomeDescrizione || "Descrizione";
+
+let html=`
+
+<div style="position:relative;margin-bottom:20px;">
+ <button onclick="printDashboard()" style="position:absolute;left:0;top:0;">
+ 🖨️ Stampa Scadenze
+ </button>
+ <h2 style="text-align:center;">Dashboard Scadenze</h2>
+</div>
+
+<div class="card">
+
+<h3>Nuovo Controllo</h3>
+
+${
+pages.length
+?
+`<select id="pageSelect"
+onchange="aggiornaCampiHome();aggiornaMenu();renderCampiExtra();">
+
+${pages.map(p=>`<option>${p.name}</option>`).join("")}
+
+</select>`
+:
+`<div class="card scaduto">
+Nessuna verifica creata
+</div>`
+}
+
+<label id="lblTitolo">${nomeTitolo}</label>
+<input id="titolo" list="titoliList" placeholder="${nomeTitolo}">
+<datalist id="titoliList"></datalist>
+
+<label id="lblDescrizione">${nomeDescrizione}</label>
+<input id="descrizione" list="descrizioniList" placeholder="${nomeDescrizione}">
+<datalist id="descrizioniList"></datalist>
+
+<div id="campiExtra"></div>
+
+<label>Data Controllo</label>
+<input id="dataControllo" type="date">
+
+<label>Prossima Scadenza</label>
+<input id="dataScadenza" type="date">
+
+<button onclick="quickInsert()">
+Salva Controllo
+</button>
+
+</div>
+
+<h3>🔴 Scaduti</h3>
+<div class="cardsGrid">
+`;
+
+let today=new Date();
+
+pages.forEach(p=>{
+ p.records.forEach((r,index)=>{
+
+  if(r.nascostoDashboard) return;
+  if(!r.dataScadenza) return;
+
+  let diff=Math.ceil(
+   (new Date(r.dataScadenza)-today)/86400000
+  );
+
+  if(diff<0){
+
+   html+=`
+   <div class="card scaduto">
+
+   <h3>${p.name}</h3>
+
+   <b>${r.titolo||"-"}</b><br>
+   ${r.descrizione||"-"}<br>
+
+   Controllata:
+   ${r.dataControllo ? formattaData(r.dataControllo) : "-"}<br>
+
+   Scadenza:
+   ${r.dataScadenza ? formattaData(r.dataScadenza) : "-"}<br>
+
+   Scaduta da ${Math.abs(diff)} giorni
+
+   <br><br>
+
+   <button onclick="editRecord('${p.name}',${index})">
+   ✏️ Modifica
+   </button>
+
+   <button onclick="nascondiDashboard('${p.name}',${index})">
+   ✅ Archivia
+   </button>
+
+   </div>
+   `;
+  }
+ });
+});
+
+html+=`
+</div>
+
+<h3>🟡 In scadenza entro 15 giorni</h3>
+
+<div class="cardsGrid">
+`;
+
+pages.forEach(p=>{
+ p.records.forEach((r,index)=>{
+
+  if(r.nascostoDashboard) return;
+  if(!r.dataScadenza) return;
+
+  let diff=Math.ceil(
+   (new Date(r.dataScadenza)-today)/86400000
+  );
+
+  if(diff>=0 && diff<=15){
+
+   html+=`
+   <div class="card scadenza">
+
+   <h3>${p.name}</h3>
+
+   <b>${r.titolo||"-"}</b><br>
+   ${r.descrizione||"-"}<br>
+
+   Controllata:
+   ${r.dataControllo ? formattaData(r.dataControllo) : "-"}<br>
+
+   Scadenza:
+   ${r.dataScadenza ? formattaData(r.dataScadenza) : "-"}<br>
+
+   Mancano ${diff} giorni
+
+   <br><br>
+
+   <button onclick="editRecord('${p.name}',${index})">
+   ✏️ Modifica
+   </button>
+
+   <button onclick="nascondiDashboard('${p.name}',${index})">
+   ✅ Archivia
+   </button>
+
+   </div>
+   `;
+  }
+ });
+});
+
+html+=`</div>`;
+
+document.getElementById("content").innerHTML=html;
+
+aggiornaMenu();
+renderCampiExtra();
+aggiornaCampiHome();
+}
+function formattaData(data){
+ if(!data)return "";
+ let [anno,mese,giorno]=data.split("-");
+ return `${giorno}/${mese}/${anno}`;
+}
+function invertiData(data){
+ if(!data)return "";
+ let parti=data.split("/");
+ if(parti.length!==3)return data;
+ return `${parti[2]}-${parti[1]}-${parti[0]}`;
+}
+function aggiornaMenu(){
+
+ let pagina=document.getElementById("pageSelect")?.value;
+ if(!pagina)return;
+
+ let p=pages.find(x=>x.name===pagina);
+ if(!p)return;
+
+ let titoli=[...new Set(p.records.map(r=>r.titolo).filter(Boolean))];
+ let descrizioni=[...new Set(p.records.map(r=>r.descrizione).filter(Boolean))];
+
+ document.getElementById("titoliList").innerHTML =
+  titoli.sort().map(t=>`<option value="${t}">`).join("");
+
+ document.getElementById("descrizioniList").innerHTML =
+  descrizioni.sort().map(d=>`<option value="${d}">`).join("");
+
+ document.getElementById("titolo").value = "";
+ document.getElementById("descrizione").value = "";
+}
+function quickInsert(){
+
+ let page=document.getElementById("pageSelect").value;
+
+ let titolo=document.getElementById("titolo").value.trim();
+ let descrizione=document.getElementById("descrizione").value.trim();
+ let dataControllo=document.getElementById("dataControllo").value;
+ let dataScadenza=document.getElementById("dataScadenza").value;
+
+ let p=pages.find(x=>x.name===page);
+
+ let valoriExtra={};
+
+ (p.colonneExtra || []).forEach(nome=>{
+
+  let campo=document.getElementById(
+   "extra_" + nome
+  );
+
+  valoriExtra[nome]=campo ? campo.value.trim() : "";
+
+ });
+
+ let precedente=p.records.find(
+  r=>r.descrizione===descrizione && descrizione!=""
+ );
+
+ if(precedente){
+
+  if(!confirm(
+`Esiste già una verifica con questa descrizione.
+
+Ultima scadenza: ${formattaData(precedente.dataScadenza)}
+
+Vuoi aggiungere una NUOVA scadenza mantenendo lo storico?`
+  )) return;
+
+ }
+
+ p.records.push({
+
+  titolo:titolo||"",
+
+  descrizione:descrizione||"",
+
+  dataControllo:dataControllo||"",
+
+  dataScadenza:dataScadenza||"",
+
+  nascostoDashboard:false,
+
+  extra:valoriExtra
+
+ });
+
+ saveData();
+
+ showHome();
+
+}
+function deleteRecord(pageName,index){
+
+ if(!confirm("Vuoi eliminare questa scadenza?"))return;
+
+ let page=pages.find(p=>p.name===pageName);
+
+ page.records.splice(index,1);
+
+ saveData();
+ showHome();
+
+}
+function editRecord(pageName,index){
+
+ let page=pages.find(p=>p.name===pageName);
+ let record=page.records[index];
+
+ let titolo=prompt("Titolo",record.titolo||"");
+ if(titolo===null)return;
+
+ let descrizione=prompt("Descrizione",record.descrizione||"");
+ if(descrizione===null)return;
+
+ let dataControllo=prompt("Data Controllo (gg/mm/aaaa)",formattaData(record.dataControllo));
+ if(dataControllo===null)return;
+
+ let dataScadenza=prompt("Data Scadenza (gg/mm/aaaa)",formattaData(record.dataScadenza));
+ if(dataScadenza===null)return;
+
+ record.titolo=titolo;
+ record.descrizione=descrizione;
+ record.dataControllo=invertiData(dataControllo);
+ record.dataScadenza=invertiData(dataScadenza);
+
+ saveData();
+ showHome();
+
+}
+function createPage(){
+
+ let name=document.getElementById("newPageName").value.trim();
+ if(!name) return;
+
+ let nomeTitolo =
+ prompt("Nome della prima colonna","Titolo") || "Titolo";
+
+ let nomeDescrizione =
+ prompt("Nome della seconda colonna","Descrizione") || "Descrizione";
+
+ let numColonne =
+ parseInt(document.getElementById("newColumns").value) || 0;
+
+ let colonneExtra=[];
+
+ for(let i=1;i<=numColonne;i++){
+
+  let nome=
+  prompt(`Nome colonna aggiuntiva ${i}`);
+
+  if(!nome){
+   colonneExtra.push(`Colonna ${i}`);
+   continue;
+  }
+
+  nome=nome.trim();
+
+  let vietate=[
+   nomeTitolo.toLowerCase(),
+   nomeDescrizione.toLowerCase(),
+   "data controllo",
+   "data scadenza",
+   "stato",
+   "azioni"
+  ];
+
+  if(vietate.includes(nome.toLowerCase())){
+   alert(`"${nome}" è una colonna già presente.`);
+   i--;
+   continue;
+  }
+
+  colonneExtra.push(nome);
+ }
+
+ pages.push({
+  name:name,
+  records:[],
+  nomeTitolo:nomeTitolo,
+  nomeDescrizione:nomeDescrizione,
+  colonneExtra:colonneExtra
+ });
+
+ saveData();
+ renderMenu();
+ showHome();
+
+ document.getElementById("newPageName").value="";
+ document.getElementById("newColumns").value=0;
+}
+function renderMenu(){
+
+ let html="";
+
+ pages.forEach((p,i)=>{
+  html+=`
+  <div class="menuItem" onclick="openPage(${i})">
+   ${p.name}
+  </div>
+  `;
+ });
+
+ document.getElementById("pagesList").innerHTML=html;
+
+}
+function openPage(i){
+
+ let p = pages[i];
+
+ let records = p.records
+ .map((r,index)=>({...r,realIndex:index}))
+ .sort((a,b)=>
+
+  confrontaTitoli(a,b) ||
+
+  (a.descrizione||"").localeCompare(
+   (b.descrizione||""),
+   "it",
+   {sensitivity:"base"}
+  ) ||
+
+  (a.dataScadenza||"9999-12-31").localeCompare(
+   b.dataScadenza||"9999-12-31"
+  )
+
+ );
+
+ let today = new Date();
+
+ let html = `
+
+ <div style="position:relative;margin-bottom:20px;height:80px;">
+
+   ${logoEni ? `<img srci}` : ""}
+
+   <div class="pageTitle" style="text-align:center;line-height:80px;">
+     ${p.name}
+   </div>
+
+ </div>
+
+ <table>
+
+ <tr>
+   <th>${p.nomeTitolo || "Titolo"}</th>
+   <th>${p.nomeDescrizione || "Descrizione"}</th>
+
+   ${(p.colonneExtra || [])
+     .map(c=>`<th>${c}</th>`)
+     .join("")}
+
+   <th>Data Controllo</th>
+   <th>Data Scadenza</th>
+   <th>Stato</th>
+   <th class="noPrint">Azioni</th>
+ </tr>
+
+ `;
+
+ records.forEach(r=>{
+
+  let diff = r.dataScadenza
+  ? Math.ceil((new Date(r.dataScadenza)-today)/86400000)
+  : 9999;
+
+  let stato =
+  diff < 0
+  ? `Scaduta da ${Math.abs(diff)} giorni`
+  : diff <= 15
+  ? `Scade tra ${diff} giorni`
+  : "OK";
+
+  let colore =
+  diff < 0
+  ? "#d10000"
+  : diff <= 15
+  ? "#ff9900"
+  : "#008542";
+
+  html += `
+
+  <tr>
+
+   <td>${r.titolo || ""}</td>
+
+   <td>${r.descrizione || ""}</td>
+
+   ${(p.colonneExtra || [])
+    .map(c=>`<td>${r.extra?.[c] || ""}</td>`)
+    .join("")}
+
+   <td>${r.dataControllo ? formattaData(r.dataControllo) : ""}</td>
+
+   <td>${r.dataScadenza ? formattaData(r.dataScadenza) : ""}</td>
+
+   <td style="color:${colore};font-weight:bold;">
+    ${stato}
+   </td>
+
+   <td class="noPrint">
+    <button onclick="editRecord('${p.name}',${r.realIndex})">✏️</button>
+    <button onclick="deleteRecord('${p.name}',${r.realIndex})">🗑️</button>
+   </td>
+
+  </tr>
+
+  `;
+ });
+ html += `
+ </table>
+ <br>
+<button onclick="printPage(${i})">🖨️ Stampa Tabella</button>
+<button onclick="deletePage(${i})"> 🗑️ Cancella Pagina</button>
+ `;
+ document.getElementById("content").innerHTML = html;
+}
+function deletePage(index){
+
+ if(!confirm(`Vuoi eliminare definitivamente la verifica "${pages[index].name}" e tutti i controlli contenuti?`))return;
+
+ pages.splice(index,1);
+
+ saveData();
+ renderMenu();
+ showHome();
+
+}
+function printPage(i){
+let titolo=pages[i]?.name||"";
+let tabella=document.querySelector("#content table")?.outerHTML||"";
+let w=window.open("","","width=1200,height=900");
+if(!w){alert("Consenti i popup per poter stampare.");return;}
+w.document.write(`
+<html>
+<head>
+<title>Stampa ${titolo}</title>
+<style>
+@page{margin:15mm;}
+body{font-family:Arial,sans-serif;margin:0;padding:0;}
+.headerPrint{position:relative;width:100%;height:70px;margin-bottom:20px;display:flex;align-items:center;justify-content:center;}
+.logoPrint{position:absolute;left:0;top:50%;transform:translateY(-50%);height:50px;width:auto;}
+.titoloPrint{margin:0;font-size:24px;font-weight:bold;text-align:center;}
+.tablePrint{width:100%;border-collapse:collapse;table-layout:fixed;}
+.tablePrint th,.tablePrint td{border:1px solid #000;padding:6px;text-align:center;word-wrap:break-word;overflow-wrap:break-word;}
+.tablePrint th{background:#efefef;font-weight:bold;}
+.noPrint,button{display:none!important;}
+</style>
+</head>
+<body>
+<div class="headerPrint">
+<img src="${logoEni}" class="logoPrint">
+<h1 class="titoloPrint">${titolo}</h1>
+</div>
+${tabella.replace("<table",'<table class="tablePrint"')}
+</body>
+</html>
+`);
+w.document.close();
+setTimeout(function(){
+w.focus();
+w.print();
+w.close();
+},500);
+}
+function printDashboard(){
+ let oggi=new Date();
+ let html=`
+ <html>
+ <head>
+
+ <title>Stampa Scadenze</title>
+
+ <style>
+ body{
+  font-family:Arial;
+  padding:20px;
+ }
+
+ h2{
+  text-align:center;
+ }
+
+ .scaduto{
+  border-left:5px solid red;
+  padding:8px;
+  margin-bottom:8px;
+ }
+
+ .scadenza{
+  border-left:5px solid orange;
+  padding:8px;
+  margin-bottom:8px;
+ }
+ </style>
+
+ </head>
+
+ <body>
+
+ <h2>Dashboard Scadenze</h2>
+
+ <h3>🔴 Scaduti</h3>
+ `;
+
+ pages.forEach(p=>{
+
+  p.records.forEach(r=>{
+
+   if(r.nascostoDashboard) return;
+
+   if(!r.dataScadenza) return;
+
+   let diff=Math.ceil(
+    (new Date(r.dataScadenza)-oggi)/86400000
+   );
+
+   if(diff<0){
+
+    html+=`
+    <div class="scaduto">
+
+      <b>${p.name}</b><br>
+
+      ${r.titolo||"-"}<br>
+
+      ${r.descrizione||"-"}<br>
+
+      Scadenza:
+      ${formattaData(r.dataScadenza)}
+
+    </div>
+    `;
+   }
+
+  });
+
+ });
+
+ html+=`<h3>🟡 In scadenza entro 15 giorni</h3>`;
+
+ pages.forEach(p=>{
+
+  p.records.forEach(r=>{
+
+   if(r.nascostoDashboard) return;
+
+   if(!r.dataScadenza) return;
+
+   let diff=Math.ceil(
+    (new Date(r.dataScadenza)-oggi)/86400000
+   );
+
+   if(diff>=0 && diff<=15){
+
+    html+=`
+    <div class="scadenza">
+
+      <b>${p.name}</b><br>
+
+      ${r.titolo||"-"}<br>
+
+      ${r.descrizione||"-"}<br>
+
+      Scadenza:
+      ${formattaData(r.dataScadenza)}
+
+    </div>
+    `;
+   }
+
+  });
+
+ });
+
+ html+=`
+ </body>
+ </html>
+ `;
+
+ let w=window.open("","","width=1000,height=800");
+
+ w.document.write(html);
+
+ w.document.close();
+
+ w.print();
+}
+function renderCampiExtra(){
+
+ let pagina=document.getElementById("pageSelect")?.value;
+
+ if(!pagina) return;
+
+ let p=pages.find(x=>x.name===pagina);
+
+ let html="";
+
+ (p.colonneExtra || []).forEach(nome=>{
+
+  html+=`
+  <label>${nome}</label>
+  <input
+   id="extra_${nome}"
+   placeholder="${nome}"
+  >
+  `;
+ });
+
+ document.getElementById("campiExtra").innerHTML=html;
+}
+function nascondiDashboard(pageName,index){
+
+ let page=pages.find(p=>p.name===pageName);
+
+ page.records[index].nascostoDashboard=true;
+
+ saveData();
+ showHome();
+
+}
+function updateCell(pageName,index,campo,valore){
+  let page = pages.find(p => p.name === pageName);
+  if(!page) return;
+
+  page.records[index][campo] = valore.trim();
+
+  saveData();
+
+  console.log("Salvato:", campo, valore);
+}
+function aggiornaCampiHome(){
+
+ let pagina =
+ document.getElementById("pageSelect")?.value;
+
+ if(!pagina) return;
+
+ let p =
+ pages.find(x=>x.name===pagina);
+
+ if(!p) return;
+
+ document.getElementById("lblTitolo").innerText =
+ p.nomeTitolo || "Titolo";
+
+ document.getElementById("lblDescrizione").innerText =
+ p.nomeDescrizione || "Descrizione";
+
+ document.getElementById("titolo").placeholder =
+ p.nomeTitolo || "Titolo";
+
+ document.getElementById("descrizione").placeholder =
+ p.nomeDescrizione || "Descrizione";
+}
+renderMenu();
+showHome();
+function goExternalHome(){window.location.href = "SCC ridotto.html";}
+</script>
+</body>
+</html>

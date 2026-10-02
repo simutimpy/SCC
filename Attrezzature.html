@@ -1,0 +1,697 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<title>Gestione Attrezzature</title>
+
+<style>
+:root {--eni-yellow: #ffd200;--eni-black: #000000;--eni-blue: #f59e0b;}
+#azioni { margin-top: 38px;   /* ✅ allinea con intestazione tabella */}   
+.footer {position:fixed;bottom:10px;right:10px;font-size:12px;color:#666;}
+/* HEADER */
+#boxScadenze {display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;}
+.colonna {display:flex;flex-direction:column;}
+#scaduti {border-left:5px solid red;}
+#scadenza {border-left:5px solid orange;}
+header {background: var(--eni-blue);color: white;padding: 15px;text-align: center;font-weight: bold;}
+button {padding:10px;margin:5px;border:none;background:#2563eb;color:white;cursor:pointer;}
+/* ICONA */
+.print-btn { font-size:30px; }
+/* LAYOUT TESTATA */
+.top-bar {display:flex;align-items:center;justify-content:space-between;}
+.left-box {display:flex;align-items:center;gap:10px;}
+.logo {max-height:70px;}
+#scaduti, #scadenza { background: white;padding: 10px; border-left: 5px solid var(--eni-black); max-height: 200px;   /* ✅ scroll */overflow-y: auto;font-size: 13px;}
+#ditte {display: grid;grid-template-columns: repeat(3, 1fr); /* ✅ 3 colonne */gap: 8px;}
+#ditte div { background: white; padding: 8px; border-left: 5px solid var(--eni-yellow); display: flex; justify-content: space-between; align-items: center;}
+#ditte button { background: transparent; color: var(--eni-black); font-weight: bold; font-size: 16px;   /* ✅ più grande */}
+#ditte div span,
+#ditte div button { margin-left: 6px;}
+.sospesa { background: #f3f3f3 !important; border-left: 5px solid grey !important;}
+/* CENTRO */
+.centro {text-align:center;margin-top:10px;}
+/* TABELLA */
+table {width:100%;border-collapse:collapse;margin-top:10px;background:white;}
+th {background:#111827;color:white;}
+td {border:1px solid #ccc;padding:4px;text-align:center;}
+/* INPUT */
+#azioni span {font-size: 16px; cursor: pointer;}
+#azioni span:hover { transform: scale(1.2);}
+input[type="date"] {width:130px;border:none;background:transparent;}
+input[type="text"] { width: 100%; height: 100%; text-align: center; box-sizing: border-box;}
+/* COLORI LIVE */
+.rosso { background:red; color:white; }
+.giallo { background:yellow; }
+.testo-rosso {color:red !important;}
+.testo-giallo {color:#c9a700 !important;}
+/* LAMPEGGIO (solo schermo) */
+@keyframes blink { 50% {opacity:0;} }
+.blink { animation: blink 1s infinite; }
+/* PAGINE */
+.page { display:none; }
+.active { display:block; }
+/* ===== STAMPA ===== */
+.print-date {display:none;}
+/* ✅ TABELLA NORMALE */
+table { width:100%; border-collapse:collapse; margin-top:10px; background:white;}
+th { background:#111827; color:white;}
+td {border:1px solid #ccc; padding:4px; text-align:center;}
+@media print {
+body {margin:0 !important;padding:0 !important;}
+@page {size:landscape;margin-top:10mm;margin-bottom:8mm;margin-left:10mm;margin-right:10mm;}
+body * {visibility:hidden;}
+#azienda,#azienda * {visibility:visible;}
+.footer,.homeIcon,.topbar,button,.print-btn,input,select,input[type="file"],#azioni {display:none !important;}
+tr[style*="opacity"] {display:none !important;}
+#azienda {position:absolute;top:0;left:0;width:100%;margin:0;padding:0;font-size:14px;}
+#azienda h2 {margin:0;padding:0;line-height:1;}
+#azienda .centro {margin:2px 0;line-height:1;}
+#azienda table {width:100%;border-collapse:collapse;border:2px solid black;margin-top:0;}
+#azienda th,#azienda td {border:1px solid black;background:white !important;color:black !important;padding:2px;}
+#azienda th:last-child,#azienda td:last-child {border-right:2px solid black;}
+#azienda tr:last-child td {border-bottom:2px solid black;}
+#azienda thead tr:first-child th {border-top:2px solid black;}
+#azienda td:nth-child(1),#azienda td:nth-child(2),#azienda td:nth-child(3),#azienda td:nth-child(9) {text-align:left !important;padding-left:5px;}
+.print-date {display:inline;color:black;}
+td.print-red .print-date {color:red !important;}
+td.print-yellow .print-date {color:#c9a700 !important;}
+td.print-black .print-date {color:black !important;}
+.blink {animation:none !important;}
+}
+
+</style>
+</head>
+<body>
+<div id="homePage">
+<div class="topbar">
+  <div class="homeIcon" onclick="goExternalHome()">
+    <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" fill="black" viewBox="0 0 24 24">
+      <path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/>
+    </svg>
+  </div>
+</div>
+<div class="footer">
+  BY Simone Lacognata
+</div>
+<header>
+<h2>Gestione Attrezzature di Cantiere</h2>
+</header>
+<!-- HOME -->
+<div class="page active" id="home">
+<div id="boxScadenze">
+<div class="colonna"><h3>🔴 Scaduti</h3><div id="scaduti"></div></div>
+<div class="colonna"><h3>🟡 In scadenza (20 giorni)</h3><div id="scadenza"></div></div></div>
+<button onclick="stampaScadenze()">🖨️ Stampa Scadenze</button>
+<h3>Ditte</h3>
+<div id="ditte"></div>
+<button onclick="nuovaDitta()">+ Aggiungi Ditta</button>
+</div>
+<button onclick="esportaBackup()">💾 Crea Backup</button>
+<input type="file" id="importFile" style="display:none" onchange="importaBackup(event)">
+<button onclick="document.getElementById('importFile').click()">📂 Ripristina Backup</button>
+<!-- AZIENDA -->
+<div class="page" id="azienda">
+
+<button onclick="tornaHome()">⬅ Torna</button>
+<button class="print-btn" onclick="window.print()">🖨️</button>
+<div class="top-bar">
+    <div class="left-box">
+        <h2 id="nomeDitta"></h2>
+        <img id="logo" class="logo">
+    </div>
+</div>
+<input type="file" accept="image/*" onchange="caricaLogo(event)">
+<p class="centro">
+    Ultimo aggiornamento: <span id="update"></span>
+</p>
+<button onclick="aggiungi()">+ Nuovo</button>
+<!-- ✅ CONTENITORE DOPPIO -->
+<div style="display:flex; gap:10px; align-items:flex-start;">
+    <!-- ✅ TABELLA -->
+    <table id="tabella">
+<thead>
+<tr>
+  <th>Tipo Macchina</th>
+  <th>Marca</th>
+  <th>Matricola</th>
+  <th>Codice Interno</th>
+  <th>Ultima Verifica</th>
+  <th>Marcatura CE</th>
+  <th>Libretto Uso e Manutenzione</th>
+</tr>
+</thead>
+        <tbody id="tbody"></tbody>
+    </table>
+    <!-- ✅ COLONNA BOTTONI -->
+    <div id="azioni"></div>
+</div>
+<div id="printScadenze" style="display:none;"></div>
+<script>
+/* ===== STORAGE ===== */
+let aziende = JSON.parse(localStorage.getItem("aziende_attrezzature")) || {};
+let loghi = JSON.parse(localStorage.getItem("loghi_attrezzature")) || {};
+let statiDitte = JSON.parse(localStorage.getItem("statiDitte_attrezzature")) || {};
+function salva(){
+    localStorage.setItem("aziende_attrezzature", JSON.stringify(aziende));
+    localStorage.setItem("loghi_attrezzature", JSON.stringify(loghi));
+    localStorage.setItem("statiDitte_attrezzature", JSON.stringify(statiDitte));
+}
+let current = "";
+/* ===== DATE ===== */
+function formatDate(d){
+    if(!d) return "";
+    let x=new Date(d);
+    return ("0"+x.getDate()).slice(-2)+"/"+
+           ("0"+(x.getMonth()+1)).slice(-2)+"/"+
+           x.getFullYear();
+}
+function parseDate(s){
+    if(!s) return null;
+    let [g,m,a]=s.split("/");
+    return new Date(a,m-1,g);
+}
+function toInput(s){
+    if(!s) return "";  // ✅ campo vuoto vero
+    let [g,m,a]=s.split("/");
+    return `${a}-${m}-${g}`;
+}
+/* ===== HOME ===== */
+function caricaHome(){
+
+    let div = document.getElementById("ditte");
+    div.innerHTML = "";
+
+    Object.keys(aziende)
+    .sort((a,b)=>a.localeCompare(b))
+    .forEach(a=>{
+
+        /* ✅ se non esiste lo stato → attivo */
+        if(!statiDitte[a]){
+            statiDitte[a] = "attiva";
+        }
+        /* ✅ nasconde ditte sospese */
+        let container = document.createElement("div");
+        container.style.marginBottom = "5px";
+
+        /* ✅ bottone ditta */
+        let b = document.createElement("button");
+        b.innerText = a;
+        b.onclick = ()=>apri(a);
+
+        /* ✅ bottone sospendi / riattiva */
+        let statoBtn = document.createElement("span");
+        statoBtn.style.cursor = "pointer";
+        statoBtn.style.marginLeft = "5px";
+
+/* ✅ controllo stato */
+/* ✅ stato sospesa (grafica) */
+if(statiDitte[a] === "sospesa"){
+    container.classList.add("sospesa");
+}
+
+/* ✅ bottone pausa/play */
+if(statiDitte[a] === "sospesa"){
+
+    statoBtn.innerText = "▶";   // PLAY
+    statoBtn.style.color = "green";
+
+    statoBtn.onclick = (e)=>{
+        e.stopPropagation();
+        statiDitte[a] = "attiva";
+        salva();
+        caricaHome();
+    };
+
+} else {
+
+    statoBtn.innerText = "⏸";   // PAUSA
+    statoBtn.style.color = "orange";
+
+    statoBtn.onclick = (e)=>{
+        e.stopPropagation();
+
+        if(!confirm("Sospendere ditta?")) return;
+
+        statiDitte[a] = "sospesa";
+        salva();
+        caricaHome();
+    };
+}
+        /* ✅ bottone elimina (solo X) */
+        let eliminaBtn = document.createElement("button");
+        eliminaBtn.innerText = "×";
+        eliminaBtn.style.marginLeft = "5px";
+        eliminaBtn.style.background = "transparent";
+        eliminaBtn.style.color = "red";
+        eliminaBtn.style.fontWeight = "bold";
+        eliminaBtn.style.border = "none";
+        eliminaBtn.style.cursor = "pointer";
+        eliminaBtn.style.fontSize = "18px";
+
+        eliminaBtn.onclick = (e)=>{
+            e.stopPropagation();
+
+            if(!confirm("Sei sicuro di voler cancellare la ditta " + a + "?")) return;
+
+            delete aziende[a];
+            delete loghi[a];
+            delete statiDitte[a];
+
+            salva();
+            caricaHome();
+        };
+
+        /* ✅ aggiunta elementi */
+        container.appendChild(b);
+        container.appendChild(statoBtn);
+        container.appendChild(eliminaBtn);
+
+        div.appendChild(container);
+    });
+
+    /* ✅ aggiorna scadenze */
+    mostraScadenze();
+}
+/* ===== NUOVA DITTA ===== */
+function nuovaDitta(){
+    let n = prompt("Nome ditta");
+
+    if(!n) return;
+
+    // ✅ evita doppioni
+    if(aziende[n]){
+        alert("Ditta già esistente!");
+        return;
+    }
+
+    aziende[n] = [];
+    statiDitte[n] = "attiva";
+
+    salva();
+    caricaHome();
+}
+/* ===== SCADENZE ===== */
+function mostraScadenze(){
+
+    let oggi = new Date();
+    let scaduti = [];
+    let prossimi = [];
+
+    for(let a in aziende){
+
+        if(statiDitte[a] === "sospesa") continue;
+
+        aziende[a].forEach(r => {
+
+            if(r.stato === "sospeso") return;
+            if(!r.verifica) return;
+
+            let verifica = parseDate(r.verifica);
+            if(!verifica) return;
+
+            // ✅ calcolo scadenza (+3 mesi)
+            let scadenza = new Date(verifica);
+            scadenza.setMonth(scadenza.getMonth() + 3);
+
+            let diff = (scadenza - oggi) / (1000*60*60*24);
+
+            // ✅ testo visualizzazione
+            let dataScad = formatDate(scadenza);
+            let nome = `${r.tipo || "Macchina"} - ${r.matricola || "N/D"} (${a}) - SCAD: ${dataScad}`;
+
+            // ✅ LOGICA
+            if(diff < 0){
+                scaduti.push("🔴 " + nome);
+            }
+            else if(diff <= 20){
+                prossimi.push("🟡 " + nome);
+            }
+        });
+    }
+
+    document.getElementById("scaduti").innerHTML =
+        scaduti.length ? scaduti.join("<br>") : "Nessuno";
+
+    document.getElementById("scadenza").innerHTML =
+        prossimi.length ? prossimi.join("<br>") : "Nessuno";
+}
+/* ===== APRI ===== */
+function apri(nome){
+    current=nome;
+
+    document.getElementById("home").classList.remove("active");
+    document.getElementById("azienda").classList.add("active");
+
+    document.getElementById("nomeDitta").innerText=nome;
+    document.getElementById("update").innerText=formatDate(new Date());
+
+    document.getElementById("logo").src = loghi[nome] || "";
+
+    aggiorna();
+}
+/* ===== TORNA ===== */
+function tornaHome(){
+    document.getElementById("azienda").classList.remove("active");
+    document.getElementById("home").classList.add("active");
+    caricaHome();
+}
+/* ===== LOGO ===== */
+function caricaLogo(e){
+    let file=e.target.files[0];
+    let reader=new FileReader();
+
+    reader.onload=function(){
+        loghi[current]=reader.result;
+        document.getElementById("logo").src=reader.result;
+        salva();
+    };
+    reader.readAsDataURL(file);
+}
+/* ===== AGGIUNGI ===== */
+function aggiungi(){
+aziende[current].push({
+    tipo: "",
+    marca: "",
+    matricola: "",
+    codice: "",
+    verifica: "",
+    ce: "SI",
+    libretto: "SI",
+    stato:"attivo"
+});
+salva();
+aggiorna();
+}
+/* ===== UTILS ===== */
+function diffGiorni(data){
+    let d = parseDate(data);
+    if(!d) return null;
+
+    let oggi = new Date();
+
+    // ✅ aggiunge 3 mesi alla data verifica
+    let scadenza = new Date(d);
+    scadenza.setMonth(scadenza.getMonth() + 3);
+
+    return (scadenza - oggi) / (1000*60*60*24);
+}
+/* ===== TABELLA ===== */
+function aggiorna(){
+
+    let tb = document.getElementById("tbody");
+    tb.innerHTML = "";
+
+    let azioniDiv = document.getElementById("azioni");
+    azioniDiv.innerHTML = "";
+
+    aziende[current].forEach((r,i)=>{
+
+        let tr = document.createElement("tr");
+
+tr.innerHTML = `
+<td contenteditable oninput="save(${i},'tipo',this.innerText)">
+    ${r.tipo || ''}
+</td>
+
+<td contenteditable oninput="save(${i},'marca',this.innerText)">
+    ${r.marca || ''}
+</td>
+
+<td contenteditable oninput="save(${i},'matricola',this.innerText)">
+    ${r.matricola || ''}
+</td>
+
+<td contenteditable oninput="save(${i},'codice',this.innerText)">
+    ${r.codice || ''}
+</td>
+
+${cella(r.verifica,'verifica',i)}
+
+<td>
+    <select onchange="save(${i},'ce',this.value)">
+        <option ${r.ce === "SI" ? "selected" : ""}>SI</option>
+        <option ${r.ce === "NO" ? "selected" : ""}>NO</option>
+    </select>
+</td>
+
+<td>
+    <select onchange="save(${i},'libretto',this.value)">
+        <option ${r.libretto === "SI" ? "selected" : ""}>SI</option>
+        <option ${r.libretto === "NO" ? "selected" : ""}>NO</option>
+    </select>
+</td>
+`;
+
+        tb.appendChild(tr);
+
+        // ✅ AZIONI
+        let azioni = document.createElement("div");
+
+        let sosp = document.createElement("span");
+        sosp.innerText = "⏸";
+        sosp.onclick = (e) => sospendiLav(i, e);
+
+        let del = document.createElement("span");
+        del.innerText = "❌";
+        del.onclick = (e) => eliminaLav(i, e);
+
+        azioni.appendChild(sosp);
+        azioni.appendChild(del);
+
+        azioniDiv.appendChild(azioni);
+    });
+}
+        // ✅ funzione celle
+function cella(data, campo, i){
+
+    let diff = diffGiorni(data);
+
+    let classeTesto = "";
+    let classeStampa = "print-black";
+
+    if(diff !== null){
+
+        let giorniPassati = 90 - diff;
+
+        if(diff < 0){
+            classeTesto = "testo-rosso";
+            classeStampa = "print-red";
+        }
+        else if(giorniPassati >= 70){
+            classeTesto = "testo-giallo";
+            classeStampa = "print-yellow";
+        }
+    }
+
+    return `
+    <td class="${classeStampa}">
+        <input type="text"
+            class="${classeTesto}"
+            value="${data || ''}"
+            onblur="saveManualDate(${i},'${campo}',this.value)">
+        <span class="print-date">${data || ''}</span>
+    </td>
+    `;
+}
+function saveManualDate(i, campo, val){
+
+    // ✅ pulizia input
+    val = val.trim();
+
+    if(!val) return;
+
+    // ✅ divide giorno/mese/anno
+    let parts = val.split("/");
+
+    if(parts.length < 2) return;
+
+    let g = parts[0];
+    let m = parts[1];
+    let a = parts[2] || new Date().getFullYear();
+
+    // ✅ sistema anno corto (es. 26 → 2026)
+    if(a.length === 2){
+        a = "20" + a;
+    }
+
+    // ✅ aggiunge zeri (es. 1 → 01)
+    g = g.padStart(2,"0");
+    m = m.padStart(2,"0");
+
+    let dataFinale = `${g}/${m}/${a}`;
+
+    // ✅ salva nel database
+    aziende[current][i][campo] = dataFinale;
+
+    salva();
+    aggiorna();   // ✅ ricarica riga → aggiorna anche stampa
+}
+/* ===== SAVE ===== */
+function save(i,campo,val){
+    aziende[current][i][campo]=val;
+    salva();
+}
+function saveDate(i,campo,val){
+    aziende[current][i][campo]=formatDate(val);
+    salva();
+    aggiorna();
+}
+caricaHome();
+function goExternalHome(){window.location.href = "home Gst.html";}
+function sospendiLav(i,e){
+    e.stopPropagation();
+
+    let conferma = confirm("Sospendere questa Attrezzatura?");
+    if(!conferma) return;
+
+    aziende[current][i].stato = "sospeso";
+
+    salva();
+    aggiorna();
+}
+function eliminaLav(i,e){
+    e.stopPropagation();
+
+    let conferma = confirm("Eliminare questa Attrezzatura?");
+    if(!conferma) return;
+
+    aziende[current].splice(i,1);
+
+    salva();
+    aggiorna();
+}
+function stampaScadenze(){
+
+    let oggi = new Date();
+
+    let contenuto = "<h3 style='color:red;'>🔴 SCADUTI</h3>";
+
+    // 🔴 SCADUTI
+    for(let a in aziende){
+
+        if(statiDitte[a] === "sospesa") continue;
+
+        aziende[a].forEach(r => {
+
+            if(r.stato === "sospeso" || !r.verifica) return;
+
+            let verifica = parseDate(r.verifica);
+            if(!verifica) return;
+
+            // ✅ calcolo scadenza (+3 mesi)
+            let scadenza = new Date(verifica);
+            scadenza.setMonth(scadenza.getMonth() + 3);
+
+            let diff = (scadenza - oggi) / (1000*60*60*24);
+
+            if(diff < 0){
+
+                let dataScad = formatDate(scadenza);
+
+                contenuto += `
+                <div>
+                ${r.tipo || "Macchina"} - ${r.matricola || "N/D"} (${a}) - SCAD: ${dataScad}
+                </div>`;
+            }
+        });
+    }
+
+    contenuto += "<h3 style='color:#c9a700;'>🟡 IN SCADENZA</h3>";
+
+    // 🟡 IN SCADENZA (ultimi 20 giorni)
+    for(let a in aziende){
+
+        if(statiDitte[a] === "sospesa") continue;
+
+        aziende[a].forEach(r => {
+
+            if(r.stato === "sospeso" || !r.verifica) return;
+
+            let verifica = parseDate(r.verifica);
+            if(!verifica) return;
+
+            let scadenza = new Date(verifica);
+            scadenza.setMonth(scadenza.getMonth() + 3);
+
+            let diff = (scadenza - oggi) / (1000*60*60*24);
+
+            if(diff >= 0 && diff <= 20){
+
+                let dataScad = formatDate(scadenza);
+
+                contenuto += `
+                <div>
+                ${r.tipo || "Macchina"} - ${r.matricola || "N/D"} (${a}) - SCAD: ${dataScad}
+                </div>`;
+            }
+        });
+    }
+
+    // ✅ APERTURA FINESTRA
+    let win = window.open("", "_blank");
+
+    win.document.write(`
+    <html>
+    <head>
+        <title>Scadenze Attrezzature</title>
+        <style>
+            body{font-family:Arial; padding:10px;}
+            h3{margin-top:20px;}
+        </style>
+    </head>
+    <body>
+        ${contenuto}
+    </body>
+    </html>
+    `);
+
+    win.document.close();
+    win.print();
+}
+// ===== BACKUP =====
+function esportaBackup(){
+    let dati = {
+        aziende,
+        loghi,
+        statiDitte
+    };
+
+    let json = JSON.stringify(dati);
+    let blob = new Blob([json], { type: "application/json" });
+
+    let url = URL.createObjectURL(blob);
+    let a = document.createElement("a");
+
+    a.href = url;
+    a.download = "backup_attrezzature.json";
+    a.click();
+
+    URL.revokeObjectURL(url);
+}
+// ===== IMPORT =====
+function importaBackup(event){
+    let file = event.target.files[0];
+    let reader = new FileReader();
+
+    reader.onload = function(e){
+        try{
+            let dati = JSON.parse(e.target.result);
+
+            aziende = dati.aziende || {};
+            loghi = dati.loghi || {};
+            statiDitte = dati.statiDitte || {};
+
+            salva();
+            alert("✅ Backup ATTREZZATURE caricato!");
+            location.reload();
+
+        } catch(err){
+            alert("❌ Errore nel file!");
+        }
+    };
+
+    reader.readAsText(file);
+}
+</script>
+</body>
+</html>

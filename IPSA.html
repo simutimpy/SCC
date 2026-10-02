@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<title>IPSA ENI</title>
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<style>
+body{font-family:'Montserrat',sans-serif;margin:0;display:flex;justify-content:center;background:linear-gradient(135deg,#f4f6f8,#dfe6ec);}
+.container{display:flex;justify-content:center;width:100%;max-width:900px;padding:20px;}
+.left{width:100%;background:white;padding:25px;border-radius:12px;box-shadow:0 4px 12px rgba(0,0,0,0.08);text-align:center;}
+.topbar{position:absolute;top:10px;left:20px;}
+.homeIcon svg{width:100px;height:100px;cursor:pointer;transition:0.2s;}
+.homeIcon svg:hover{transform:scale(1.1);}
+h1{margin-bottom:15px;}
+select,input[type="file"],input[type="month"]{margin:6px 0;padding:7px;width:70%;border-radius:6px;border:1px solid #ccc;}
+button{background:#006341;color:white;padding:10px 16px;border:none;border-radius:8px;cursor:pointer;margin-top:10px;transition:0.2s;}
+button:hover{background:#004d32;}
+.right{position:fixed;top:10px;right:10px;width:220px;background:white;padding:12px;border-radius:10px;box-shadow:0 4px 10px rgba(0,0,0,0.1);font-size:12px;z-index:1000;}
+.right h3{font-size:14px;margin:5px 0 10px 0;text-align:center;}
+.right input[type="file"]{width:100%;margin-bottom:4px;font-size:10px;}
+.right span{font-size:9px;color:#666;margin-bottom:6px;display:block;}
+.section{margin-bottom:8px;padding-bottom:6px;border-bottom:1px solid #eee;}
+.right:hover{transform:scale(1.02);transition:0.2s;}
+</style>
+</head>
+<body>
+<div class="topbar"><div class="homeIcon" onclick="goExternalHome()"><svg xmlns="http://www.w3.org/2000/svg" fill="black" viewBox="0 0 24 24"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg></div></div>
+<div class="container">
+<div class="topbar">
+  <div class="homeIcon" onclick="goExternalHome()">
+    <svg xmlns="http://www.w3.org/2000/svg" width="200" height="200" fill="black" viewBox="0 0 24 24">
+      <path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/>
+    </svg>
+  </div>
+  </div>
+<div class="left">
+<h1 style="color:#006341">IPSA</h1>
+<select id="area">
+<option>DICS ON SHORE</option>
+<option>DICS OFF SHORE</option>
+<option>DIME</option>
+<option>DIME/LUOGHI AFFERENTI</option>
+<option>ENIMED</option>
+</select><br>
+<!-- ✅ SLOT MESE RIPRISTINATA -->
+<label>Mese di riferimento</label><br>
+<input type="month" id="mese"><br>
+<h3>Mese precedente</h3>
+<input type="file" id="prev" multiple><br>
+<h3>Mese attuale</h3>
+<input type="file" id="curr" multiple><br><br>
+<button onclick="generaanteprima()">ANTEPRIMA</button>
+<button onclick="genera()">GENERA PDF</button>
+<div id="preview"></div>
+<div class="right">
+<h3>Icone</h3>
+<div class="section">SU<input type="file" onchange="salvaImg(this,'up')"><span id="name_up"></span>GIU<input type="file" onchange="salvaImg(this,'down')"><span id="name_down"></span>UGUALE<input type="file" onchange="salvaImg(this,'equal')"><span id="name_equal"></span></div>
+<div class="section">META >100<input type="file" onchange="salvaImg(this,'m1')"><span id="name_m1"></span>META 80-100<input type="file" onchange="salvaImg(this,'m2')"><span id="name_m2"></span>META 60-80<input type="file" onchange="salvaImg(this,'m3')"><span id="name_m3"></span>META <60<input type="file" onchange="salvaImg(this,'m4')"><span id="name_m4"></span></div>
+<div class="section">Logo ENI<input type="file" onchange="salvaImg(this,'logoEni')"><span id="name_logoEni"></span>Logo SCC<input type="file" onchange="salvaImg(this,'logoScc')"><span id="name_logoScc"></span></div>
+<button onclick="resetImages()">RESET</button>
+</div>
+<script>
+// SALVATAGGIO IMMAGINI
+function salvaImg(input,id){
+  let file = input.files[0];
+  if(!file) return;
+  let reader = new FileReader();
+  reader.onload = () => {
+    localStorage.setItem(id, reader.result);
+
+    // ✅ salva anche il NOME FILE
+    localStorage.setItem(id+"_name", file.name);
+
+    // ✅ mostra nome subito
+    document.getElementById("name_"+id).innerText = file.name;
+
+    alert(id + " salvata ✅");
+  };
+
+  reader.readAsDataURL(file);
+}
+// mostra nomi salvati al reload
+window.onload = function(){
+
+  const ids = ["up","down","equal","m1","m2","m3","m4","logoEni","logoScc"];
+
+  ids.forEach(id=>{
+    let nome = localStorage.getItem(id+"_name");
+    if(nome){
+      document.getElementById("name_"+id).innerText = nome;
+    }
+  });
+}
+// ✅ LETTURA MULTI FILE + AGGREGAZIONE CORRETTA
+async function readExcel(files){
+
+ let map = {};
+
+ for(let i=0;i<files.length;i++){
+
+   let data = await files[i].arrayBuffer();
+   let wb = XLSX.read(data);
+   let json = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]]);
+
+   json.forEach(r=>{
+   if(!r["Impresa"]) return;
+
+   let imp = r["Impresa"].trim();
+
+   // prima:
+   // let val = Number(r["Val. mensile"]);
+
+   // dopo:
+   let val = Number(r["IPSA"]);
+
+   if(!val) return;
+
+   if(!map[imp]) map[imp] = [];
+   map[imp].push(val);
+   });
+ }
+
+ // MEDIA SOLO SE CI SONO PIU RECORD
+ let result = {};
+
+ Object.keys(map).forEach(k=>{
+   let arr = map[k];
+
+   let media = arr.reduce((a,b)=>a+b,0)/arr.length;
+   result[k] = Math.round(media);
+ });
+
+ return result;
+}
+// TREND
+function getTrend(curr, prev){
+ if(prev === undefined) return "equal";
+ if(curr > prev) return "up";
+ if(curr < prev) return "down";
+ return "equal";
+}
+// META
+function getMeta(val){
+ if(val > 100) return "m1";
+ if(val >= 80) return "m2";
+ if(val >= 60) return "m3";
+ return "m4";
+}
+// MAIN
+async function generaanteprima(){
+const meseInput=document.getElementById("mese").value;
+const area=document.getElementById("area").value;
+if(!meseInput){alert("Seleziona mese");return;}
+const prev=await readExcel(document.getElementById("prev").files);
+const curr=await readExcel(document.getElementById("curr").files);
+let html="<h3>Anteprima modificabile</h3><table id='previewTable' border='1' style='border-collapse:collapse;width:100%;font-size:12px'>";
+html+="<tr style='background:#ffc000'><th>Impresa</th><th>IPSA</th><th>Trend</th><th>Meta</th></tr>";
+Object.keys(curr).sort().forEach(imp=>{
+let currVal=curr[imp];
+let prevVal=prev[imp]??100;
+html+="<tr>";
+html+="<td>"+imp+"</td>";
+html+="<td contenteditable='true'>"+currVal+"</td>";
+html+="<td>"+getTrend(currVal,prevVal)+"</td>";
+html+="<td>"+getMeta(currVal)+"</td>";
+html+="</tr>";
+});
+html+="</table>";
+document.getElementById("preview").innerHTML=html;
+}
+function leggiAnteprima(){
+  let table=document.getElementById("previewTable");
+  if(!table)return null;
+  let curr={};
+  for(let i=1;i<table.rows.length;i++){
+    let imp=table.rows[i].cells[0].innerText.trim();
+    let val=Number(table.rows[i].cells[1].innerText.replace(",","."));
+    if(!isNaN(val))curr[imp]=val;
+  }
+  return curr;
+}
+async function genera(){
+
+  const meseInput = document.getElementById("mese").value;
+  const area = document.getElementById("area").value;
+
+  if(!meseInput){
+    alert("Seleziona mese");
+    return;
+  }
+
+  const data = new Date(meseInput);
+  const mesi = ["GENNAIO","FEBBRAIO","MARZO","APRILE","MAGGIO","GIUGNO","LUGLIO","AGOSTO","SETTEMBRE","OTTOBRE","NOVEMBRE","DICEMBRE"];
+  const meseNome = mesi[data.getMonth()];
+  const anno = data.getFullYear();
+
+  const prev = await readExcel(document.getElementById("prev").files);
+
+  const curr = leggiAnteprima() ?? await readExcel(document.getElementById("curr").files);
+
+  const imprese = Object.keys(curr).sort();
+
+  const values = Object.values(curr);
+  const avg = values.reduce((a,b)=>a+b,0)/values.length;
+  const std = Math.sqrt(values.reduce((a,b)=>a+Math.pow(b-avg,2),0)/values.length);
+
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF("portrait");
+
+  let y = 10;
+
+  const pageWidth = doc.internal.pageSize.getWidth();
+  const tableWidth = 180;
+  const startX = (pageWidth - tableWidth) / 2;
+
+  const col = {
+    x0: startX,
+    x1: startX + 60,
+    x2: startX + 90,
+    x3: startX + 115,
+    x4: startX + 140,
+    x5: startX + 180
+  };
+
+  const logoEni = localStorage.getItem("logoEni");
+  const logoScc = localStorage.getItem("logoScc");
+
+  const h = 28;
+
+  doc.setFillColor(130,130,130);
+  doc.rect(col.x0, y, col.x1-col.x0, h, "F");
+  doc.rect(col.x0, y, col.x1-col.x0, h);
+
+  if(logoEni){
+    let imgW = (col.x1-col.x0)*0.7;
+    let imgH = h*0.6;
+    doc.addImage(logoEni,"PNG",col.x0 + ((col.x1-col.x0)-imgW)/2,y + (h-imgH)/2,imgW,imgH);
+  }
+
+  doc.setFillColor(255,192,0);
+  doc.rect(col.x1, y, col.x4-col.x1, h, "F");
+  doc.rect(col.x1, y, col.x4-col.x1, h);
+
+  let cx = col.x1 + (col.x4-col.x1)/2;
+
+  doc.setFont("Helvetica","bold");
+  doc.setFontSize(11);
+  doc.text(`IPSA ${area}`, cx, y+7,null,null,"center");
+  doc.setFontSize(9);
+  doc.text("PATTO PER LA SICUREZZA & AMBIENTE", cx, y+13,null,null,"center");
+  doc.setFontSize(11);
+  doc.text("IPSA MEDIO", cx, y+19,null,null,"center");
+  doc.text(`${meseNome} ${anno}`, cx, y+25,null,null,"center");
+
+  doc.rect(col.x4, y, col.x5-col.x4, h);
+  doc.setFillColor(255,255,255);
+  doc.rect(col.x4, y, col.x5-col.x4, h/2, "F");
+  doc.rect(col.x4, y, col.x5-col.x4, h/2);
+
+  if(logoScc){
+    let boxW = col.x5-col.x4;
+    let boxH = h/2;
+    let imgW = boxW * 0.45;
+    let imgH = boxH * 0.9;
+    doc.addImage(logoScc,"PNG",col.x4 + (boxW-imgW)/2,y + (boxH-imgH)/2,imgW,imgH);
+  }
+
+  doc.setFillColor(255,192,0);
+  doc.rect(col.x4, y+h/2, col.x5-col.x4, h/2, "F");
+  doc.rect(col.x4, y+h/2, col.x5-col.x4, h/2);
+
+  doc.setFontSize(8);
+  doc.text(`IPSA MEDIO: ${avg.toFixed(2)}`, col.x4+2, y+h/2+5);
+  doc.text(`Dev.Std: ${std.toFixed(2)}`, col.x4+2, y+h/2+10);
+
+  doc.line(col.x1, y, col.x1, y+h);
+  doc.line(col.x4, y, col.x4, y+h);
+
+  y += h;
+
+  doc.setFillColor(255,255,0);
+  doc.rect(col.x0, y, col.x5-col.x0, 8, "F");
+  doc.rect(col.x0, y, col.x5-col.x0, 8);
+
+  doc.line(col.x1, y, col.x1, y+8);
+  doc.line(col.x2, y, col.x2, y+8);
+  doc.line(col.x3, y, col.x3, y+8);
+  doc.line(col.x4, y, col.x4, y+8);
+
+  doc.setFontSize(8);
+  doc.text("IMPRESA", col.x0+(col.x1-col.x0)/2, y+5,null,null,"center");
+  doc.text("IPSA", col.x1+(col.x2-col.x1)/2, y+5,null,null,"center");
+  doc.text("TREND", col.x2+(col.x3-col.x2)/2, y+5,null,null,"center");
+  doc.text("META", col.x3+(col.x4-col.x3)/2, y+5,null,null,"center");
+  doc.text("NOTE", col.x4+(col.x5-col.x4)/2, y+5,null,null,"center");
+
+  y += 8;
+
+  doc.setFont("Helvetica","normal");
+
+  imprese.forEach((imp,index)=>{
+
+    let currVal = curr[imp];
+    let prevVal = prev[imp] ?? 100;
+    let trend = getTrend(currVal, prevVal);
+    let meta = getMeta(currVal);
+
+    if(y > 270){
+      doc.addPage();
+      y = 10;
+    }
+
+    doc.setFillColor(index%2===0?255:230);
+    doc.rect(col.x0,y,col.x5-col.x0,7,"F");
+    doc.rect(col.x0,y,col.x5-col.x0,7);
+
+    doc.line(col.x1,y,col.x1,y+7);
+    doc.line(col.x2,y,col.x2,y+7);
+    doc.line(col.x3,y,col.x3,y+7);
+    doc.line(col.x4,y,col.x4,y+7);
+
+    doc.text(imp.substring(0,25),col.x0+(col.x1-col.x0)/2,y+5,null,null,"center");
+    doc.text(currVal.toString(),col.x1+(col.x2-col.x1)/2,y+5,null,null,"center");
+
+    let tImg = localStorage.getItem(trend);
+    if(tImg){
+      let cx = col.x2+(col.x3-col.x2)/2;
+      doc.addImage(tImg,"PNG",cx-3,y+1,6,6);
+    }
+
+    let mImg = localStorage.getItem(meta);
+    if(mImg){
+      let cx = col.x3+(col.x4-col.x3)/2;
+      doc.addImage(mImg,"PNG",cx-3,y+1,6,6);
+    }
+
+    y += 7;
+  });
+
+  doc.save(`Trend_IPSA_${area}_${meseNome}_${anno}.pdf`);
+}
+function goExternalHome(){window.location.href = "SCC.html";}
+</script>
+</body>
+</html>

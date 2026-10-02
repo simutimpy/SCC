@@ -305,6 +305,23 @@ hr {
   text-align:center;
   margin-bottom:8px;
 }
+.contenitoreStorico{
+    display:flex;
+    flex-wrap:wrap;
+    gap:15px;
+    justify-content:center;
+    margin-top:20px;
+}
+.cardBusta{
+    display:inline-block;
+    background:white;
+    padding:10px;
+    border-radius:10px;
+    width:auto;
+    min-width:240px;
+    text-align:center;
+    box-shadow:0 0 5px rgba(0,0,0,0.2);
+}
 </style>
 </head>
 <body>
@@ -314,7 +331,7 @@ hr {
 <!-- CASA SINISTRA -->
   <div onclick="goExternalHome()" 
        style="position:absolute; left:20px; top:10px; cursor:pointer;">
-    <svg xmlns="http://www.w3.org/2000/svg" width="50" height="50" fill="black" viewBox="0 0 24 24">
+    <svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" fill="black" viewBox="0 0 24 24">
       <path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/>
     </svg>
   </div>
@@ -413,33 +430,25 @@ hr {
       <!-- PARAMETRI -->
       <div class="col">
         <h3>Parametri</h3>
-
-        <div>Base € <input id="bp_base" value="3071.93"></div>
-        <div>Ore normali <input id="bp_ore_norm"></div>
+        <div>Base € <input id="bp_base" value="3126.93"></div>
+        <div>Ore normali <input id="bp_ore_norm" value="6"></div>
         <div>Paga oraria € <input id="bp_paga" value="17.31"></div>
-
-        <div>Magg ferie € <input id="bp_magg_fer" value="3.89"></div>
-        <div>Magg fest € <input id="bp_magg_fest" value="6.18"></div>
-
-        <div>Stra fer € <input id="bp_stra_fer" value="6.4"></div>
-        <div>Stra fest € <input id="bp_stra_fest" value="12.98"></div>
-
+        <div>Magg feriale € <input id="bp_magg_fer" value="3.81"></div>
+        <div>Magg fest € <input id="bp_magg_fest" value="6.06"></div>
+        <div>Stra fer € <input id="bp_stra_fer" value="8.14"></div>
+        <div>Stra fest € <input id="bp_stra_fest" value="10.39"></div>
         <div>Trasferta € <input id="bp_trasf" value="31.51"></div>
       </div>
-
       <!-- DETRAZIONI -->
       <div class="col">
         <h3>Detrazioni</h3>
-
         <div class="highlight">
           Benzina € <input id="bp_benzina">
         </div>
-
         <div>Irpef € <input id="bp_irpef" value="80.92"></div>
         <div>Sindacato € <input id="bp_sind" value="23.19"></div>
-        <div>Prestito € <input id="bp_prest" value="290.57"></div>
+        <div>Prestito € <input id="bp_prest" value="292.08"></div>
       </div>
-
       <!-- EXTRA -->
       <div class="col">
         <h3>Extra</h3>
@@ -468,12 +477,13 @@ hr {
     <hr>
 
     <div id="bp_output"></div>
-
+<hr>
+<h3>Storico Buste Paga</h3>
+<div id="storicoBuste" class="contenitoreStorico"></div>
   </div>
 </div>
 <script>   
 function normalizzaData(d){
-
     if(!d) return "";
 
     d = d.trim();
@@ -497,9 +507,6 @@ function normalizzaData(d){
 function stampa4mesi() {
     window.print();
 }
-function goExternalHome() {
-    location.href = "SCC.html";
-}
 // NAVIGAZIONE
 function vaiGenera(){
     document.getElementById("home").classList.remove("attiva");
@@ -507,16 +514,19 @@ function vaiGenera(){
 }
 function vaiHome(){
     document.getElementById("genera").classList.remove("attiva");
+    document.getElementById("busta").classList.remove("attiva"); // ✅ aggiungi
     document.getElementById("home").classList.add("attiva");
+
+    // ✅ torna in alto
+    window.scrollTo({ top: 0, behavior: "smooth" });
+
     carica();
 }
-// CREA 28 CASELLE
 let div = document.getElementById("modello");
 for(let i=0;i<28;i++){
     let input = document.createElement("input");
     div.appendChild(input);
 }
-// ✅ CARICA MODELLO SALVATO
 let salvato = JSON.parse(localStorage.getItem("modello"));
 if(salvato){
     let inputs = document.querySelectorAll("#modello input");
@@ -540,89 +550,111 @@ function isFestivo(data){
 // GENERA TURNI
 function genera(){
 
-    // ✅ PRENDE MODELLO (solo valori pieni)
+    // MODELLO
     let modello = [];
-
-    document.querySelectorAll("#modello input").forEach(i=>{
+    document.querySelectorAll("#modello input").forEach(i => {
         let v = i.value.trim().toUpperCase();
         if(v !== "") modello.push(v);
     });
 
     localStorage.setItem("modello", JSON.stringify(modello));
 
-    // ✅ NOMI
+    // NOMI
     let n1 = document.getElementById("n1").value.trim();
     let n2 = document.getElementById("n2").value.trim();
     let n3 = document.getElementById("n3").value.trim();
 
     aggiornaTabellaNomi();
 
-    // ✅ DATE INIZIO
-    let d1 = new Date(document.getElementById("d1").value);
-    let d2 = new Date(document.getElementById("d2").value);
-    let d3 = new Date(document.getElementById("d3").value);
+    // DATE INIZIO
+    let d1 = document.getElementById("d1").value
+        ? new Date(document.getElementById("d1").value)
+        : null;
 
-    d1.setHours(0,0,0,0);
-    d2.setHours(0,0,0,0);
-    d3.setHours(0,0,0,0);
+    let d2 = document.getElementById("d2").value
+        ? new Date(document.getElementById("d2").value)
+        : null;
 
-    // ✅ CARICA VECCHI TURNI
+    let d3 = document.getElementById("d3").value
+        ? new Date(document.getElementById("d3").value)
+        : null;
+
+    if(d1) d1.setHours(0,0,0,0);
+    if(d2) d2.setHours(0,0,0,0);
+    if(d3) d3.setHours(0,0,0,0);
+
+    // TURNI ESISTENTI
     let turni = JSON.parse(localStorage.getItem("turni")) || [];
 
-    // ✅ SE NON ESISTONO → CREA BASE ANNUALE
     if(turni.length === 0){
-
-        let anno = d1.getFullYear();
-        let startAnno = new Date(anno,0,1);
-
-        for(let i=0;i<365;i++){
-            let data = new Date(startAnno);
-            data.setDate(startAnno.getDate()+i);
-
-            turni.push({
-                raw: data.toISOString(),
-                p1: "",
-                p2: "",
-                p3: ""
-            });
-        }
+        alert("Nessuna turnazione esistente.");
+        return;
     }
-function calcola(start, dataCorrente){
- if(!start || dataCorrente < start) return null;
- if(modello.length === 0) return null;
 
- const startUTC = Date.UTC(start.getFullYear(), start.getMonth(), start.getDate());
- const currUTC  = Date.UTC(dataCorrente.getFullYear(), dataCorrente.getMonth(), dataCorrente.getDate());
+    function calcola(start, dataCorrente){
+        if(!start) return null;
 
- let diff = Math.floor((currUTC - startUTC)/(1000*60*60*24));
+        const startUTC = Date.UTC(
+            start.getFullYear(),
+            start.getMonth(),
+            start.getDate()
+        );
 
- let index = diff % modello.length;
+        const currUTC = Date.UTC(
+            dataCorrente.getFullYear(),
+            dataCorrente.getMonth(),
+            dataCorrente.getDate()
+        );
 
- return modello[index];
-}
-    // ✅ AGGIORNA SOLO DOPO LA DATA
+        let diff = Math.floor(
+            (currUTC - startUTC) / (1000 * 60 * 60 * 24)
+        );
+
+        let index = ((diff % modello.length) + modello.length) % modello.length;
+
+        return modello[index];
+    }
+
     turni.forEach(g => {
 
         let dataCorrente = new Date(g.raw);
+        dataCorrente.setHours(0,0,0,0);
 
-        let t1 = calcola(d1, dataCorrente);
-        let t2 = calcola(d2, dataCorrente);
-        let t3 = calcola(d3, dataCorrente);
+        // PERSONA 1
+        if(d1 && dataCorrente >= d1){
+            g.p1 = calcola(d1, dataCorrente);
+        }
 
-        if(t1 !== null) g.p1 = t1;
-        if(t2 !== null) g.p2 = t2;
-        if(t3 !== null) g.p3 = t3;
+        // PERSONA 2
+        if(d2 && dataCorrente >= d2){
+            g.p2 = calcola(d2, dataCorrente);
+        }
+
+        // PERSONA 3
+        if(d3 && dataCorrente >= d3){
+            g.p3 = calcola(d3, dataCorrente);
+        }
     });
 
-    // ✅ SALVA
-    localStorage.setItem("turni", JSON.stringify(turni));
-    localStorage.setItem("nomi", JSON.stringify([n1,n2,n3]));
+    // NOMI: aggiorna solo quelli compilati
+    let nomiAttuali =
+        JSON.parse(localStorage.getItem("nomi")) || ["","",""];
 
-    alert("Turni aggiornati ✅");
+    localStorage.setItem(
+        "nomi",
+        JSON.stringify([
+            n1 || nomiAttuali[0],
+            n2 || nomiAttuali[1],
+            n3 || nomiAttuali[2]
+        ])
+    );
+
+    localStorage.setItem("turni", JSON.stringify(turni));
+
+    alert("✅ Turnazione aggiornata solo dalla data indicata in poi");
 
     vaiHome();
 }
-
 function aggiornaTabellaNomi(){
     document.getElementById("nome1_tab").textContent =
         document.getElementById("n1").value;
@@ -838,10 +870,12 @@ document.addEventListener("DOMContentLoaded", () => {
     carica();
     creaTabellaFerie();
     caricaFerie();
+    mostraStoricoBuste();
 });
 function vaiBusta(){
   document.getElementById("home").classList.remove("attiva");
   document.getElementById("busta").classList.add("attiva");
+  document.getElementById("busta").scrollIntoView({ behavior: "smooth" });
 }
 function calcolaBusta(){
 
@@ -862,24 +896,22 @@ function calcolaBusta(){
     return;
   }
 
-  // ✅ mese precedente
+  // mese precedente
   meseIndex--;
   if(meseIndex < 0) meseIndex = 11;
 
-  // ✅ CONTATORI
   let T_tot = 0;
   let T_fest = 0;
   let G_tot = 0;
 
-  // ✅ CONTEGGIO TURNI
   dati.forEach(g => {
+
     let d = new Date(g.raw);
 
     if(d.getMonth() !== meseIndex) return;
 
     let turno = (g[persona] || "").toUpperCase();
 
-    // T
     if(turno === "T"){
       T_tot++;
 
@@ -888,16 +920,13 @@ function calcolaBusta(){
       }
     }
 
-    // G
     if(turno === "G"){
       G_tot++;
     }
+
   });
 
   let T_fer = T_tot - T_fest;
-  // =========================
-  // ✅ CALCOLO
-  // =========================
 
   let base = getVal("bp_base",3071.93);
   let paga = getVal("bp_paga",17.31);
@@ -925,84 +954,227 @@ function calcolaBusta(){
   let stra = T_tot * paga;
   let straF = T_fer * 2 * straFer;
   let straFs = T_fest * 2 * straFest;
-  let indennita = (T_tot + G_tot) * trasf;
 
-  let lordo = base + oreNorm + maggFerie + maggFest + stra + straF + straFs + indennita;
+  let indennita = 0;
+
+  if(concur > 0){
+    indennita = (T_tot + G_tot) * trasf;
+  }
+
+  let lordo =
+    base +
+    oreNorm +
+    maggFerie +
+    maggFest +
+    stra +
+    straF +
+    straFs +
+    indennita;
 
   let tasse = lordo * (tassa / 100);
   let nettoBase = lordo - tasse;
 
-  let netto = nettoBase - benzina - irpef - sind - prest;
+  let netto =
+    nettoBase -
+    benzina -
+    irpef -
+    sind -
+    prest;
 
-  let premioNetto = premio - (premio * premioPerc / 100);
+  let premioNetto =
+    premio - (premio * premioPerc / 100);
 
-  netto = netto + concur + premioNetto;
+  netto =
+    netto +
+    concur +
+    premioNetto;
 
+  let html = `
+  <table style="border-collapse:collapse;margin:auto;background:white;font-size:14px;">
+    <tr style="background:#4CAF50;color:white;">
+      <th colspan="2" style="padding:6px;">
+        BUSTA PAGA ${persona.toUpperCase()}
+      </th>
+    </tr>
 
-  // ✅ OUTPUT
-document.getElementById("bp_output").innerHTML = `
+    <tr><td>Base</td><td>€ ${base.toFixed(2)}</td></tr>
+    <tr><td>Ore normali</td><td>€ ${oreNorm.toFixed(2)}</td></tr>
+    <tr><td>Magg. feriale</td><td>€ ${maggFerie.toFixed(2)}</td></tr>
+    <tr><td>Magg. festivi</td><td>€ ${maggFest.toFixed(2)}</td></tr>
+    <tr><td>Straordinario</td><td>€ ${stra.toFixed(2)}</td></tr>
+    <tr><td>Stra feriale</td><td>€ ${straF.toFixed(2)}</td></tr>
+    <tr><td>Stra festivo</td><td>€ ${straFs.toFixed(2)}</td></tr>
+    <tr><td>Trasferta</td><td>€ ${indennita.toFixed(2)}</td></tr>
 
-<table style="border-collapse:collapse; margin:auto; background:white; font-size:14px;">
+    <tr style="font-weight:bold;background:#ddd;">
+      <td>LORDO</td>
+      <td>€ ${lordo.toFixed(2)}</td>
+    </tr>
 
-<tr style="background:#4CAF50; color:white;">
-  <th colspan="2" style="padding:6px;">BUSTA PAGA ${persona.toUpperCase()}</th>
-</tr>
+    <tr>
+      <td>Tasse (${tassa}%)</td>
+      <td>€ ${tasse.toFixed(2)}</td>
+    </tr>
 
-<tr><td>Base</td><td>€ ${base.toFixed(2)}</td></tr>
-<tr><td>Ore normali</td><td>€ ${oreNorm.toFixed(2)}</td></tr>
-<tr><td>Magg. ferie</td><td>€ ${maggFerie.toFixed(2)}</td></tr>
-<tr><td>Magg. festivi</td><td>€ ${maggFest.toFixed(2)}</td></tr>
-<tr><td>Straordinario</td><td>€ ${stra.toFixed(2)}</td></tr>
-<tr><td>Stra feriale</td><td>€ ${straF.toFixed(2)}</td></tr>
-<tr><td>Stra festivo</td><td>€ ${straFs.toFixed(2)}</td></tr>
-<tr><td>Trasferta</td><td>€ ${indennita.toFixed(2)}</td></tr>
+    <tr style="font-weight:bold;">
+      <td>Netto dopo tasse</td>
+      <td>€ ${nettoBase.toFixed(2)}</td>
+    </tr>
 
-<tr style="font-weight:bold; background:#ddd;">
-  <td>LORDO</td>
-  <td>€ ${lordo.toFixed(2)}</td>
-</tr>
+    <tr>
+      <td colspan="2"><b>Detrazioni</b></td>
+    </tr>
 
-<tr>
-  <td>Tasse (${tassa}%)</td>
-  <td>€ ${tasse.toFixed(2)}</td>
-</tr>
+    <tr style="background:yellow;">
+      <td>Benzina</td>
+      <td>€ ${benzina.toFixed(2)}</td>
+    </tr>
 
-<tr style="font-weight:bold;">
-  <td>Netto dopo tasse</td>
-  <td>€ ${nettoBase.toFixed(2)}</td>
-</tr>
+    <tr><td>Irpef</td><td>€ ${irpef.toFixed(2)}</td></tr>
+    <tr><td>Sindacato</td><td>€ ${sind.toFixed(2)}</td></tr>
+    <tr><td>Prestito</td><td>€ ${prest.toFixed(2)}</td></tr>
 
-<tr><td colspan="2"><b>Detrazioni</b></td></tr>
+    <tr>
+      <td colspan="2"><b>Extra</b></td>
+    </tr>
 
-<tr style="background:yellow;">
-  <td>Benzina</td>
-  <td>€ ${benzina.toFixed(2)}</td>
-</tr>
+    <tr style="background:yellow;">
+      <td>Concur</td>
+      <td>€ ${concur.toFixed(2)}</td>
+    </tr>
 
-<tr><td>Irpef</td><td>€ ${irpef.toFixed(2)}</td></tr>
-<tr><td>Sindacato</td><td>€ ${sind.toFixed(2)}</td></tr>
-<tr><td>Prestito</td><td>€ ${prest.toFixed(2)}</td></tr>
+    <tr>
+      <td>Premio netto</td>
+      <td>€ ${premioNetto.toFixed(2)}</td>
+    </tr>
 
-<tr><td colspan="2"><b>Extra</b></td></tr>
+    <tr style="
+      font-size:18px;
+      font-weight:bold;
+      background:#4CAF50;
+      color:white;">
+      <td>NETTO FINALE</td>
+      <td>€ ${netto.toFixed(2)}</td>
+    </tr>
+  </table>
+  `;
 
-<tr style="background:yellow;">
-  <td>Concur</td>
-  <td>€ ${concur.toFixed(2)}</td>
-</tr>
+  document.getElementById("bp_output").innerHTML = html;
 
-<tr>
-  <td>Premio netto</td>
-  <td>€ ${premioNetto.toFixed(2)}</td>
-</tr>
+  if(confirm("Vuoi conservare questa busta paga nello storico?")){
 
-<tr style="font-size:18px; font-weight:bold; background:#4CAF50; color:white;">
-  <td>NETTO FINALE</td>
-  <td>€ ${netto.toFixed(2)}</td>
-</tr>
+    let archivio =
+      JSON.parse(localStorage.getItem("archivioBuste")) || [];
+   archivio.push({
+  mese: meseSelezionato,
+  data: new Date().toLocaleString(),
+  html: html,
+ valori:{
+    mese: meseSelezionato,
+    base,
+    benzina,
+    concur,
+    premio
+}
+});
 
-</table>
+    localStorage.setItem(
+      "archivioBuste",
+      JSON.stringify(archivio)
+    );
 
-`;
+    mostraStoricoBuste();
+  }
+}
+function salvaBusta(busta){
+
+   let archivio =
+      JSON.parse(localStorage.getItem("archivioBuste")) || [];
+
+   archivio.push(busta);
+
+   localStorage.setItem(
+      "archivioBuste",
+      JSON.stringify(archivio)
+   );
+
+   mostraStoricoBuste();
+}
+function mostraStoricoBuste(){
+
+    let div = document.getElementById("storicoBuste");
+
+    let archivio =
+        JSON.parse(localStorage.getItem("archivioBuste")) || [];
+
+    div.innerHTML = "";
+
+    archivio.forEach((b,i)=>{
+
+        let box = document.createElement("div");
+
+        box.className = "cardBusta";
+
+        box.innerHTML = `
+            <div style="
+                font-size:20px;
+                font-weight:bold;
+                color:#2e7d32;
+                margin-bottom:10px;
+            ">
+                ${(b.mese || "BUSTA PAGA").toUpperCase()}
+            </div>
+
+            <div style="margin-bottom:10px;">
+                <button onclick="rifaiBusta(${i})">
+                    🔄 Rifai
+                </button>
+
+                <button onclick="cancellaBusta(${i})">
+                    🗑️ Cancella
+                </button>
+            </div>
+
+            ${b.html}
+        `;
+
+        div.appendChild(box);
+
+    });
+
+}
+function cancellaBusta(index){
+
+   let archivio =
+      JSON.parse(localStorage.getItem("archivioBuste")) || [];
+
+   archivio.splice(index,1);
+
+   localStorage.setItem(
+      "archivioBuste",
+      JSON.stringify(archivio)
+   );
+
+   mostraStoricoBuste();
+}
+function rifaiBusta(index){
+
+   let archivio =
+      JSON.parse(localStorage.getItem("archivioBuste")) || [];
+
+   let b = archivio[index];
+    document.getElementById("bp_mese").value =
+        b.valori.mese;
+   document.getElementById("bp_base").value =
+      b.valori.base;
+   document.getElementById("bp_benzina").value =
+      b.valori.benzina;
+   document.getElementById("bp_concur").value =
+      b.valori.concur;
+   document.getElementById("bp_premio").value =
+      b.valori.premio;
+   document.getElementById("busta")
+      .scrollIntoView({behavior:"smooth"});
 }
 function getVal(id, def){
   let el = document.getElementById(id);
@@ -1014,7 +1186,7 @@ function getVal(id, def){
   localStorage.setItem(id, v);
   return v;
 }
-
+function goExternalHome() {location.href = "SCC.html";}
 </script>
 </body>
 </html>

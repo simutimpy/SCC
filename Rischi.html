@@ -22,7 +22,7 @@
         .prevention { color: #080; }
         .arrow { transition: transform 0.3s; }
         .open .arrow { transform: rotate(90deg); }
- 
+        .footer { position:fixed; bottom:10px; left:10px; font-size:12px; color:#666; }
         /* Stili per la visualizzazione dinamica */
         #search-input { width: 100%; padding: 10px; margin-bottom: 20px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; font-size: 1em; }
         #lavorazioni-list { list-style: none; padding: 0; }
@@ -32,9 +32,12 @@
 <body>
    <div onclick="goExternalHome()" 
        style="position:absolute; left:20px; top:10px; cursor:pointer;">
-    <svg xmlns="http://www.w3.org/2000/svg" width="50" height="50" fill="black" viewBox="0 0 24 24">
+    <svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" fill="black" viewBox="0 0 24 24">
       <path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/>
     </svg>
+  </div>
+    <div class="footer">
+  BY Salvatore Malandrino
   </div>
     <div class="container">
         <h1>Safety Competence Center</h1>
@@ -831,9 +834,16 @@
                 B: "Caduta dall’alto; Cedimento struttura; Schiacciamento materiali; Contatto con superfici taglienti; Sollevamento carichi pesanti.",
                 C: "Montaggio non conforme a PIMUS (Art. 134); Personale non formato (Art. 136); Mancata verifica ancoraggi (Art. 125); DPI anticaduta assenti (Art. 77).",
                 D: "Norme su lavori in quota, PIMUS e DPI."
+            },
+            "111": {
+                 titolo: "GESTIONE COLLEGAMENTI ELETTRICI MULTIPLI E DERIVAZIONI",
+                 A: "Utilizzo di prese multiple, adattatori, prolunghe e derivazioni elettriche temporanee per alimentare più utenze in cantiere o in ambienti di lavoro.",
+                 B: "Sovraccarico delle linee elettriche; Surriscaldamento di cavi e prese; Rischio incendio per cortocircuiti; Elettrocuzione per contatti indiretti o dispersioni; Malfunzionamento apparecchiature collegate.",
+                 C: "Utilizzo di prese multiple e adattatori in cascata (Art. 80); Realizzazione di derivazioni non protette o volanti (Art. 80–82); Mancanza di protezioni contro sovraccarico e corto circuito (Art. 81); Impianto elettrico non conforme o non verificato (Art. 86); Assenza di controllo e manutenzione periodica (Art. 71).",
+                 D: "Divieto di utilizzo di collegamenti multipli non autorizzati o improvvisati; Obbligo di impianti elettrici a norma con protezioni adeguate (magnetotermiche e differenziali); Utilizzo di prese certificate e distribuzione corretta dei carichi; Verifica periodica dell’impianto elettrico e delle attrezzature; Formazione dei lavoratori sull’uso corretto delle utenze elettriche."
             }
         };
- 
+
         // Unione di tutti i blocchi dati
         const lavorazioni = { ...lavorazioni_1_44_51_56, ...lavorazioni_45_80, ...lavorazioni_81_110 };
  
@@ -902,9 +912,7 @@
  
         // Inizializza la visualizzazione
         renderLavorazioni();
- function goExternalHome() {
-    location.href = "SCC.html";
-}
+ function goExternalHome() { location.href = "SCC ridotto.html";}
     </script>
 </body>
 </html>
