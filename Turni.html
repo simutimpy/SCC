@@ -355,6 +355,8 @@ hr {
 <div class="bottoni-centro">
     <button onclick="vaiGenera()">Genera Turno</button>
     <button onclick="vaiBusta()">Busta paga</button>
+    <button onclick="esportaBackup()">💾 Crea Backup</button><input type="file"id="fileBackup"accept=".json"style="display:none" onchange="importaBackup(event)">
+    <button onclick="document.getElementById('fileBackup').click()">📂 Ripristina Backup</button>
 </div>
 <div id="contenuto"></div>
 </div>
@@ -1185,6 +1187,63 @@ function getVal(id, def){
 
   localStorage.setItem(id, v);
   return v;
+}
+// ===== BACKUP =====
+function esportaBackup(){
+    let dati = {
+        turni: JSON.parse(localStorage.getItem("turni")),
+        nomi: JSON.parse(localStorage.getItem("nomi")),
+        modello: JSON.parse(localStorage.getItem("modello")),
+        ferieMalattie: JSON.parse(localStorage.getItem("ferieMalattie")),
+        archivioBuste: JSON.parse(localStorage.getItem("archivioBuste"))
+    };
+    let json = JSON.stringify(dati);
+    let blob = new Blob(
+        [json],
+        { type: "application/json" }
+    );
+    let url = URL.createObjectURL(blob);
+    let a = document.createElement("a");
+    a.href = url;
+    a.download = "backup_turni.json";
+    a.click();
+    URL.revokeObjectURL(url);
+}
+// ===== RIPRISTINO =====
+function importaBackup(event){
+    let file = event.target.files[0];
+    if(!file) return;
+    let reader = new FileReader();
+    reader.onload = function(e){
+        try{
+            let dati = JSON.parse(e.target.result);
+            localStorage.setItem(
+                "turni",
+                JSON.stringify(dati.turni || [])
+            );
+            localStorage.setItem(
+                "nomi",
+                JSON.stringify(dati.nomi || [])
+            );
+            localStorage.setItem(
+                "modello",
+                JSON.stringify(dati.modello || [])
+            );
+            localStorage.setItem(
+                "ferieMalattie",
+                JSON.stringify(dati.ferieMalattie || [])
+            );
+            localStorage.setItem(
+                "archivioBuste",
+                JSON.stringify(dati.archivioBuste || [])
+            );
+            alert("✅ Backup Turni caricato!");
+            location.reload();
+        }catch(err){
+            alert("❌ Errore nel file!");
+        }
+    };
+    reader.readAsText(file);
 }
 function goExternalHome(){location.href="https://simutimpy.github.io/SCC/SCC.html";}
 </script>
