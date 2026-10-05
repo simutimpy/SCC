@@ -70,6 +70,10 @@ GESTIONE SCADENZE
 <div class="sidebar">
 <button onclick="showHome()">🏠 Dashboard</button>
 <hr>
+<button onclick="esportaBackup()">💾 Crea Backup</button>
+<input type="file" id="fileBackup" accept=".json" style="display:none" onchange="importaBackup(event)">
+<button onclick="document.getElementById('fileBackup').click()">📂 Ripristina Backup</button>
+<hr>
 <h3>Nuova Verifica</h3>
 <input id="newPageName" placeholder="Nome verifica">
 <label>Colonne aggiuntive</label>
@@ -861,6 +865,49 @@ function aggiornaCampiHome(){
 }
 renderMenu();
 showHome();
+// ===== BACKUP =====
+function esportaBackup(){
+    let dati = {
+        pages
+    };
+
+    let json = JSON.stringify(dati);
+    let blob = new Blob([json], { type: "application/json" });
+
+    let url = URL.createObjectURL(blob);
+    let a = document.createElement("a");
+
+    a.href = url;
+    a.download = "backup_scadenze.json";
+    a.click();
+
+    URL.revokeObjectURL(url);
+}
+// ===== RIPRISTINO =====
+function importaBackup(event){
+    let file = event.target.files[0];
+    if(!file) return;
+
+    let reader = new FileReader();
+
+    reader.onload = function(e){
+        try{
+            let dati = JSON.parse(e.target.result);
+
+            pages = dati.pages || [];
+
+            saveData();
+
+            alert("✅ Backup Scadenze caricato!");
+            location.reload();
+
+        }catch(err){
+            alert("❌ Errore nel file!");
+        }
+    };
+
+    reader.readAsText(file);
+}
 function goExternalHome(){location.href="https://simutimpy.github.io/SCC/SCC.html";}
 </script>
 </body>
