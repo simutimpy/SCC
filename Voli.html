@@ -28,6 +28,10 @@ body { font-family: Arial,sans-serif; background:#e9edf2; text-align:center; mar
 <input type="text" id="compagnia" placeholder="Compagnia">
 <input type="text" id="posto" placeholder="Es: 12C">
 <button onclick="aggiungiPosto()">Aggiungi</button>
+<hr>
+<button onclick="esportaBackup()">💾 Crea Backup</button>
+<input type="file" id="fileBackup" accept=".json" style="display:none" onchange="importaBackup(event)">
+<button onclick="document.getElementById('fileBackup').click()">📂 Ripristina Backup</button>
 <h2>Mappa Aereo</h2>
 <div id="plane-wrapper">
 <div id="plane"></div>
@@ -147,6 +151,59 @@ seat.innerText="X";
 }
 creaAereo();
 caricaStorico();
+// ===== BACKUP =====
+function esportaBackup(){
+
+    let dati = {
+        storico: storico
+    };
+
+    let json = JSON.stringify(dati);
+    let blob = new Blob([json], { type: "application/json" });
+
+    let url = URL.createObjectURL(blob);
+    let a = document.createElement("a");
+
+    a.href = url;
+    a.download = "backup_voli.json";
+    a.click();
+
+    URL.revokeObjectURL(url);
+}
+
+// ===== RIPRISTINO =====
+function importaBackup(event){
+
+    let file = event.target.files[0];
+    if(!file) return;
+
+    let reader = new FileReader();
+
+    reader.onload = function(e){
+
+        try{
+
+            let dati = JSON.parse(e.target.result);
+
+            storico = dati.storico || [];
+
+            localStorage.setItem(
+                "voli",
+                JSON.stringify(storico)
+            );
+
+            alert("✅ Backup Voli caricato!");
+            location.reload();
+
+        }catch(err){
+
+            alert("❌ Errore nel file!");
+
+        }
+    };
+
+    reader.readAsText(file);
+}
 function goExternalHome(){window.location.href="https://apps.powerapps.com/play/e/default-c16e514b-893e-4a01-9a30-b8fef514a650/a/7d09e9b8-80d7-4289-8177-315e883dc6f0?tenantId=c16e514b-893e-4a01-9a30-b8fef514a650&hint=83de810f-aed1-424e-9508-763f8c564cd6&sourcetime=1791037994763&screen=HomeGST";}
 </script>
 </body>
