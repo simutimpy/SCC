@@ -412,52 +412,60 @@ function diffGiorni(s){
 }
 /* ===== TABELLA ===== */
 function aggiorna(){
-
-    let tb = document.getElementById("tbody");
-    tb.innerHTML = "";
-
-    let azioniDiv = document.getElementById("azioni");
-    azioniDiv.innerHTML = "";
-
-    aziende[current].forEach((r,i)=>{
-
-        let tr = document.createElement("tr");
-
-        tr.innerHTML = `
-        <td contenteditable oninput="save(${i},'targa',this.innerText)">
-            ${r.targa || ''}
-        </td>
-
-        <td contenteditable oninput="save(${i},'tipo',this.innerText)">
-            ${r.tipo || ''}
-        </td>
-
-        ${cella(r.assicurazione,'assicurazione',i)}
-        ${cella(r.carta,'carta',i)}
-        ${cella(r.servizio,'servizio',i)}
-        ${cella(r.funicat,'funicat',i)}
-        ${cella(r.verifica,'verifica',i)}
-        ${cella(r.noleggio,'noleggio',i)}
-        `;
-
-        tb.appendChild(tr);
-
-        // ✅ AZIONI
-        let azioni = document.createElement("div");
-
-        let sosp = document.createElement("span");
-        sosp.innerText = "⏸";
-        sosp.onclick = (e) => sospendiLav(i, e);
-
-        let del = document.createElement("span");
-        del.innerText = "❌";
-        del.onclick = (e) => eliminaLav(i, e);
-
-        azioni.appendChild(sosp);
-        azioni.appendChild(del);
-
-        azioniDiv.appendChild(azioni);
-    });
+let tb=document.getElementById("tbody");
+tb.innerHTML="";
+let azioniDiv=document.getElementById("azioni");
+azioniDiv.innerHTML="";
+aziende[current].forEach((r,i)=>{
+let tr=document.createElement("tr");
+if(r.stato==="sospeso"){
+tr.style.opacity="0.4";
+}
+tr.innerHTML=`
+<td contenteditable oninput="save(${i},'targa',this.innerText)">${r.targa||''}</td>
+<td contenteditable oninput="save(${i},'tipo',this.innerText)">${r.tipo||''}</td>
+${cella(r.assicurazione,'assicurazione',i)}
+${cella(r.carta,'carta',i)}
+${cella(r.servizio,'servizio',i)}
+${cella(r.funicat,'funicat',i)}
+${cella(r.verifica,'verifica',i)}
+${cella(r.noleggio,'noleggio',i)}
+`;
+tb.appendChild(tr);
+let azioni=document.createElement("div");
+azioni.style.display="flex";
+azioni.style.alignItems="center";
+azioni.style.justifyContent="center";
+setTimeout(()=>{
+azioni.style.height=tr.offsetHeight+"px";
+azioni.style.borderBottom="1px solid transparent";
+},0);
+let sosp=document.createElement("span");
+sosp.style.cursor="pointer";
+if(r.stato==="sospeso"){
+sosp.innerText="▶";
+sosp.onclick=()=>{
+aziende[current][i].stato="attivo";
+salva();
+aggiorna();
+};
+}else{
+sosp.innerText="⏸";
+sosp.onclick=()=>{
+if(!confirm("Sospendere questo mezzo?")) return;
+aziende[current][i].stato="sospeso";
+salva();
+aggiorna();
+};
+}
+let del=document.createElement("span");
+del.innerText="❌";
+del.style.cursor="pointer";
+del.onclick=(e)=>eliminaLav(i,e);
+azioni.appendChild(sosp);
+azioni.appendChild(del);
+azioniDiv.appendChild(azioni);
+});
 }
         // ✅ funzione celle
 function cella(data, campo, i){

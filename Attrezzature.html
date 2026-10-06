@@ -397,69 +397,64 @@ function diffGiorni(data){
 }
 /* ===== TABELLA ===== */
 function aggiorna(){
-
-    let tb = document.getElementById("tbody");
-    tb.innerHTML = "";
-
-    let azioniDiv = document.getElementById("azioni");
-    azioniDiv.innerHTML = "";
-
-    aziende[current].forEach((r,i)=>{
-
-        let tr = document.createElement("tr");
-
-tr.innerHTML = `
-<td contenteditable oninput="save(${i},'tipo',this.innerText)">
-    ${r.tipo || ''}
-</td>
-
-<td contenteditable oninput="save(${i},'marca',this.innerText)">
-    ${r.marca || ''}
-</td>
-
-<td contenteditable oninput="save(${i},'matricola',this.innerText)">
-    ${r.matricola || ''}
-</td>
-
-<td contenteditable oninput="save(${i},'codice',this.innerText)">
-    ${r.codice || ''}
-</td>
-
+let tb=document.getElementById("tbody");
+tb.innerHTML="";
+let azioniDiv=document.getElementById("azioni");
+azioniDiv.innerHTML="";
+aziende[current].forEach((r,i)=>{
+if(!r.stato){
+r.stato="attivo";
+}
+let tr=document.createElement("tr");
+if(r.stato==="sospeso"){
+tr.style.opacity="0.4";
+}
+tr.innerHTML=`
+<td contenteditable oninput="save(${i},'tipo',this.innerText)">${r.tipo||''}</td>
+<td contenteditable oninput="save(${i},'marca',this.innerText)">${r.marca||''}</td>
+<td contenteditable oninput="save(${i},'matricola',this.innerText)">${r.matricola||''}</td>
+<td contenteditable oninput="save(${i},'codice',this.innerText)">${r.codice||''}</td>
 ${cella(r.verifica,'verifica',i)}
-
 <td>
-    <select onchange="save(${i},'ce',this.value)">
-        <option ${r.ce === "SI" ? "selected" : ""}>SI</option>
-        <option ${r.ce === "NO" ? "selected" : ""}>NO</option>
-    </select>
+<select onchange="save(${i},'ce',this.value)">
+<option ${r.ce==="SI"?"selected":""}>SI</option>
+<option ${r.ce==="NO"?"selected":""}>NO</option>
+</select>
 </td>
-
 <td>
-    <select onchange="save(${i},'libretto',this.value)">
-        <option ${r.libretto === "SI" ? "selected" : ""}>SI</option>
-        <option ${r.libretto === "NO" ? "selected" : ""}>NO</option>
-    </select>
+<select onchange="save(${i},'libretto',this.value)">
+<option ${r.libretto==="SI"?"selected":""}>SI</option>
+<option ${r.libretto==="NO"?"selected":""}>NO</option>
+</select>
 </td>
 `;
-
-        tb.appendChild(tr);
-
-        // ✅ AZIONI
-        let azioni = document.createElement("div");
-
-        let sosp = document.createElement("span");
-        sosp.innerText = "⏸";
-        sosp.onclick = (e) => sospendiLav(i, e);
-
-        let del = document.createElement("span");
-        del.innerText = "❌";
-        del.onclick = (e) => eliminaLav(i, e);
-
-        azioni.appendChild(sosp);
-        azioni.appendChild(del);
-
-        azioniDiv.appendChild(azioni);
-    });
+tb.appendChild(tr);
+let azioni=document.createElement("div");
+let sosp=document.createElement("span");
+sosp.style.cursor="pointer";
+if(r.stato==="sospeso"){
+sosp.innerText="▶";
+sosp.onclick=()=>{
+aziende[current][i].stato="attivo";
+salva();
+aggiorna();
+};
+}else{
+sosp.innerText="⏸";
+sosp.onclick=()=>{
+if(!confirm("Sospendere questa Attrezzatura?")) return;
+aziende[current][i].stato="sospeso";
+salva();
+aggiorna();
+};
+}
+let del=document.createElement("span");
+del.innerText="❌";
+del.onclick=(e)=>eliminaLav(i,e);
+azioni.appendChild(sosp);
+azioni.appendChild(del);
+azioniDiv.appendChild(azioni);
+});
 }
         // ✅ funzione celle
 function cella(data, campo, i){
