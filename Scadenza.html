@@ -410,62 +410,44 @@ function deleteRecord(pageName,index){
 
  saveData();
  showHome();
-
 }
 function editRecord(pageName,index){
-
- let page=pages.find(p=>p.name===pageName);
- let record=page.records[index];
-
- let titolo=prompt("Titolo",record.titolo||"");
- if(titolo===null)return;
-
- let descrizione=prompt("Descrizione",record.descrizione||"");
- if(descrizione===null)return;
-
- let dataControllo=prompt("Data Controllo (gg/mm/aaaa)",formattaData(record.dataControllo));
- if(dataControllo===null)return;
-
- let dataScadenza=prompt("Data Scadenza (gg/mm/aaaa)",formattaData(record.dataScadenza));
- if(dataScadenza===null)return;
-
- record.titolo=titolo;
- record.descrizione=descrizione;
- record.dataControllo=invertiData(dataControllo);
- record.dataScadenza=invertiData(dataScadenza);
-
- saveData();
- showHome();
-
+let page=pages.find(p=>p.name===pageName);
+let record=page.records[index];
+let titolo=prompt("Titolo",record.titolo||"");
+if(titolo===null)return;
+let descrizione=prompt("Descrizione",record.descrizione||"");
+if(descrizione===null)return;
+let dataControllo=prompt("Data Controllo (gg/mm/aaaa)",formattaData(record.dataControllo));
+if(dataControllo===null)return;
+let dataScadenza=prompt("Data Scadenza (gg/mm/aaaa)",formattaData(record.dataScadenza));
+if(dataScadenza===null)return;
+record.titolo=titolo;
+record.descrizione=descrizione;
+record.dataControllo=invertiData(dataControllo);
+record.dataScadenza=invertiData(dataScadenza);
+record.nascostoDashboard=false;
+saveData();
+showHome();
 }
 function createPage(){
-
  let name=document.getElementById("newPageName").value.trim();
  if(!name) return;
-
  let nomeTitolo =
  prompt("Nome della prima colonna","Titolo") || "Titolo";
-
  let nomeDescrizione =
  prompt("Nome della seconda colonna","Descrizione") || "Descrizione";
-
  let numColonne =
  parseInt(document.getElementById("newColumns").value) || 0;
-
  let colonneExtra=[];
-
  for(let i=1;i<=numColonne;i++){
-
   let nome=
   prompt(`Nome colonna aggiuntiva ${i}`);
-
   if(!nome){
    colonneExtra.push(`Colonna ${i}`);
    continue;
   }
-
   nome=nome.trim();
-
   let vietate=[
    nomeTitolo.toLowerCase(),
    nomeDescrizione.toLowerCase(),
@@ -474,16 +456,13 @@ function createPage(){
    "stato",
    "azioni"
   ];
-
   if(vietate.includes(nome.toLowerCase())){
    alert(`"${nome}" è una colonna già presente.`);
    i--;
    continue;
   }
-
   colonneExtra.push(nome);
  }
-
  pages.push({
   name:name,
   records:[],
@@ -491,18 +470,14 @@ function createPage(){
   nomeDescrizione:nomeDescrizione,
   colonneExtra:colonneExtra
  });
-
  saveData();
  renderMenu();
  showHome();
-
  document.getElementById("newPageName").value="";
  document.getElementById("newColumns").value=0;
 }
 function renderMenu(){
-
  let html="";
-
  pages.forEach((p,i)=>{
   html+=`
   <div class="menuItem" onclick="openPage(${i})">
@@ -512,82 +487,59 @@ function renderMenu(){
  });
 
  document.getElementById("pagesList").innerHTML=html;
-
 }
 function openPage(i){
-
  let p = pages[i];
-
  let records = p.records
  .map((r,index)=>({...r,realIndex:index}))
  .sort((a,b)=>
-
   confrontaTitoli(a,b) ||
-
   (a.descrizione||"").localeCompare(
    (b.descrizione||""),
    "it",
    {sensitivity:"base"}
   ) ||
-
   (a.dataScadenza||"9999-12-31").localeCompare(
    b.dataScadenza||"9999-12-31"
   )
-
  );
-
  let today = new Date();
-
  let html = `
-
  <div style="position:relative;margin-bottom:20px;height:80px;">
-
    ${logoEni ? `<img srci}` : ""}
-
    <div class="pageTitle" style="text-align:center;line-height:80px;">
      ${p.name}
    </div>
-
  </div>
-
  <table>
-
  <tr>
    <th>${p.nomeTitolo || "Titolo"}</th>
    <th>${p.nomeDescrizione || "Descrizione"}</th>
-
    ${(p.colonneExtra || [])
      .map(c=>`<th>${c}</th>`)
      .join("")}
-
    <th>Data Controllo</th>
    <th>Data Scadenza</th>
    <th>Stato</th>
    <th class="noPrint">Azioni</th>
  </tr>
-
  `;
-
  records.forEach(r=>{
-
   let diff = r.dataScadenza
   ? Math.ceil((new Date(r.dataScadenza)-today)/86400000)
   : 9999;
-
   let stato =
   diff < 0
   ? `Scaduta da ${Math.abs(diff)} giorni`
   : diff <= 15
   ? `Scade tra ${diff} giorni`
   : "OK";
-
   let colore =
   diff < 0
   ? "#d10000"
   : diff <= 15
   ? "#ff9900"
   : "#008542";
-
   html += `
 
   <tr>
@@ -626,15 +578,11 @@ function openPage(i){
  document.getElementById("content").innerHTML = html;
 }
 function deletePage(index){
-
  if(!confirm(`Vuoi eliminare definitivamente la verifica "${pages[index].name}" e tutti i controlli contenuti?`))return;
-
  pages.splice(index,1);
-
  saveData();
  renderMenu();
  showHome();
-
 }
 function printPage(i){
 let titolo=pages[i]?.name||"";
