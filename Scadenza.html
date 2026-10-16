@@ -856,6 +856,33 @@ function importaBackup(event){
 
     reader.readAsText(file);
 }
+function controllaNuoveScadenze() {
+if (typeof Storage === "undefined") return;
+let pages = [];
+try { pages = JSON.parse(localStorage.getItem("pages") || "[]"); }
+catch (e) { console.log("localStorage bloccato"); return; }
+pages.forEach(p => {
+(p.records || []).forEach(r => {
+if (r.nascostoDashboard) return;
+if (!r.dataScadenza) return;
+const dataScadenza = new Date(r.dataScadenza);
+const oggi = new Date();
+if (dataScadenza > oggi) return;
+const idScadenza = r.id || r.titolo || r.nome || r.dataScadenza;
+const chiavePopup = "popup_scadenza_" + idScadenza;
+const primoAvviso = localStorage.getItem(chiavePopup);
+if (!primoAvviso) {
+localStorage.setItem(chiavePopup, Date.now());
+confirm(`⚠️ Scadenza trovata:\n\n${r.titolo || r.nome || "Scadenza"}`);
+return;
+}
+if (Date.now() - parseInt(primoAvviso, 10) < 86400000) {
+confirm(`⚠️ Scadenza trovata:\n\n${r.titolo || r.nome || "Scadenza"}`);
+}
+});
+});
+}
+controllaNuoveScadenze();
 function goExternalHome(){window.location.href="https://apps.powerapps.com/play/e/default-c16e514b-893e-4a01-9a30-b8fef514a650/a/7d09e9b8-80d7-4289-8177-315e883dc6f0?tenantId=c16e514b-893e-4a01-9a30-b8fef514a650&hint=83de810f-aed1-424e-9508-763f8c564cd6&sourcetime=1791037994763&screen=Home_pc";}
 </script>
 </body>
