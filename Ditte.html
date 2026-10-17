@@ -278,40 +278,37 @@ if(statiDitte[a] === "sospesa"){
 }
 /* ===== SCADENZE ===== */
 function mostraScadenze(){
-
-    let oggi=new Date();
-    let scaduti=[];
-    let prossimi=[];
-
+    let oggi = new Date();
+    let scaduti = [];
+    let prossimi = [];
     for(let a in aziende){
-        /* ✅ SALTA DITTE SOSPESE */
         if(statiDitte[a] === "sospesa") continue;
-        aziende[a].forEach(r=>{ if(r.stato === "sospeso") return;
+        aziende[a].forEach(r => {
+            if(r.stato === "sospeso") return;
             if(!r.accesso) return;
-            let d=parseDate(r.accesso);
-            let diff=(d-oggi)/(1000*60*60*24);
-            let nome = `${r.cognome} ${r.nome} (${a}) ${r.gst ? "- " + r.gst : ""}`;            if(diff < 0){
-                scaduti.push(nome);
+            let d = parseDate(r.accesso);
+            let diff = (d - oggi) / (1000*60*60*24);
+            let record = {
+                data: d,
+                testo: `${r.cognome} ${r.nome} (${a}) - ${r.gst || "N.D."} - Scadenza: ${r.accesso}`
+            };
+            if(diff < 0){
+                scaduti.push(record);
             } else if(diff <= 20){
-                prossimi.push(nome);
+                prossimi.push(record);
             }
         });
     }
+    scaduti.sort((a,b) => a.data - b.data);
+    prossimi.sort((a,b) => a.data - b.data);
     document.getElementById("scaduti").innerHTML =
-        scaduti.length ? scaduti.join("<br>") : "Nessuno";
-
+        scaduti.length
+            ? scaduti.map(x => x.testo).join("<br>")
+            : "Nessuno";
     document.getElementById("scadenza").innerHTML =
-        prossimi.length ? prossimi.join("<br>") : "Nessuno";
-}
-/* ===== DITTE ===== */
-function nuovaDitta(){
-    let n=prompt("Nome ditta");
-    if(n){
-        aziende[n]=[];
-        statiDitte[n] = "attiva";   // ✅ nuovo
-        salva();
-        caricaHome();
-    }
+        prossimi.length
+            ? prossimi.map(x => x.testo).join("<br>")
+            : "Nessuno";
 }
 /* ===== APRI ===== */
 function apri(nome){
