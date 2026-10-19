@@ -181,11 +181,14 @@ function toInput(s){
 }
 /* ===== HOME ===== */
 function caricaHome(){
+
     let div = document.getElementById("ditte");
     div.innerHTML = "";
+
     Object.keys(aziende)
     .sort((a,b)=>a.localeCompare(b))
     .forEach(a=>{
+
         /* ✅ se non esiste lo stato → attivo */
         if(!statiDitte[a]){
             statiDitte[a] = "attiva";
@@ -193,35 +196,46 @@ function caricaHome(){
         /* ✅ nasconde ditte sospese */
         let container = document.createElement("div");
         container.style.marginBottom = "5px";
+
         /* ✅ bottone ditta */
         let b = document.createElement("button");
         b.innerText = a;
         b.onclick = ()=>apri(a);
+
         /* ✅ bottone sospendi / riattiva */
         let statoBtn = document.createElement("span");
         statoBtn.style.cursor = "pointer";
         statoBtn.style.marginLeft = "5px";
+
 /* ✅ controllo stato */
 /* ✅ stato sospesa (grafica) */
 if(statiDitte[a] === "sospesa"){
     container.classList.add("sospesa");
 }
+
 /* ✅ bottone pausa/play */
 if(statiDitte[a] === "sospesa"){
+
     statoBtn.innerText = "▶";   // PLAY
     statoBtn.style.color = "green";
+
     statoBtn.onclick = (e)=>{
         e.stopPropagation();
         statiDitte[a] = "attiva";
         salva();
         caricaHome();
     };
+
 } else {
+
     statoBtn.innerText = "⏸";   // PAUSA
     statoBtn.style.color = "orange";
+
     statoBtn.onclick = (e)=>{
         e.stopPropagation();
+
         if(!confirm("Sospendere ditta?")) return;
+
         statiDitte[a] = "sospesa";
         salva();
         caricaHome();
@@ -237,21 +251,28 @@ if(statiDitte[a] === "sospesa"){
         eliminaBtn.style.border = "none";
         eliminaBtn.style.cursor = "pointer";
         eliminaBtn.style.fontSize = "18px";
+
         eliminaBtn.onclick = (e)=>{
             e.stopPropagation();
+
             if(!confirm("Sei sicuro di voler cancellare la ditta " + a + "?")) return;
+
             delete aziende[a];
             delete loghi[a];
             delete statiDitte[a];
+
             salva();
             caricaHome();
         };
+
         /* ✅ aggiunta elementi */
         container.appendChild(b);
         container.appendChild(statoBtn);
         container.appendChild(eliminaBtn);
+
         div.appendChild(container);
     });
+
     /* ✅ aggiorna scadenze */
     mostraScadenze();
 }
@@ -269,7 +290,7 @@ function mostraScadenze(){
             let diff = (d - oggi) / (1000*60*60*24);
             let record = {
                 data: d,
-                testo: `${r.cognome} ${r.nome} (${a}) - ${r.gst || "N.D."}`
+                testo: `${r.cognome} ${r.nome} (${a}) - ${r.gst || "N.D."} - Scadenza: ${r.accesso}`
             };
             if(diff < 0){
                 scaduti.push(record);
@@ -322,6 +343,27 @@ function caricaLogo(e){
     reader.readAsDataURL(file);
 }
 /* ===== AGGIUNGI ===== */
+function nuovaDitta() {
+    let nome = prompt("Inserisci il nome della ditta");
+
+    if (!nome) return;
+
+    nome = nome.trim();
+
+    if (nome === "") return;
+
+    if (aziende[nome]) {
+        alert("La ditta esiste già");
+        return;
+    }
+
+    aziende[nome] = [];
+    statiDitte[nome] = "attiva";
+
+    salva();
+    caricaHome();
+    apri(nome);
+}
 function aggiungi(){
 aziende[current].push({
     cognome:"", nome:"",
