@@ -108,6 +108,7 @@ hr{width:60%;margin:10px auto;}
     <button onclick="vaiBusta()">Busta paga</button>
     <button onclick="esportaBackup()">💾 Crea Backup</button><input type="file"id="fileBackup"accept=".json"style="display:none" onchange="importaBackup(event)">
     <button onclick="document.getElementById('fileBackup').click()">📂 Ripristina Backup</button>
+    <button onclick="archiviaENuovoAnno()">📦 Archivia anno e crea il nuovo</button>
 </div>
 <div id="contenuto"></div>
 </div>
@@ -936,6 +937,59 @@ caricaFerie();
 // tabelle turni e storico buste
 carica();
 mostraStoricoBuste();
+// ===== ARCHIVIA ANNO E CREA IL NUOVO =====
+function archiviaENuovoAnno(){
+    let turni = JSON.parse(localStorage.getItem("turni")) || [];
+    if(turni.length === 0){
+        alert("Nessun turno da archiviare.");
+        return;
+    }
+
+    let annoVecchio = new Date(turni[0].raw).getFullYear();
+    let annoNuovo = annoVecchio + 1;
+
+    if(!confirm("Archiviare il " + annoVecchio + " e creare il " + annoNuovo + "?")) return;
+
+    // 1) copia di sicurezza nel browser
+    let archivio = {
+        anno: annoVecchio,
+        turni: turni,
+        nomi: JSON.parse(localStorage.getItem("nomi")),
+        modello: JSON.parse(localStorage.getItem("modello")),
+        ferieMalattie: JSON.parse(localStorage.getItem("ferieMalattie")),
+        archivioBuste: JSON.parse(localStorage.getItem("archivioBuste"))
+    };
+    localStorage.setItem("archivio_" + annoVecchio, JSON.stringify(archivio));
+
+    // 2) file scaricabile
+    let blob = new Blob([JSON.stringify(archivio)], {type:"application/json"});
+    let url = URL.createObjectURL(blob);
+    let a = document.createElement("a");
+    a.href = url;
+    a.download = "turni_" + annoVecchio + ".json";
+    a.click();
+    URL.revokeObjectURL(url);
+
+    // 3) nuovo anno: tutti i giorni, turni vuoti
+    let nuovi = [];
+    for(let d = new Date(annoNuovo,0,1); d.getFullYear() === annoNuovo; d.setDate(d.getDate()+1)){
+        let mm = String(d.getMonth()+1).padStart(2,"0");
+        let gg = String(d.getDate()).padStart(2,"0");
+        nuovi.push({ raw: annoNuovo+"-"+mm+"-"+gg+"T12:00:00", p1:"", p2:"", p3:"" });
+    }
+    localStorage.setItem("turni", JSON.stringify(nuovi));
+
+    // 4) ferie/malattie/straordinari e storico buste ripartono da zero
+    localStorage.setItem("ferieMalattie", JSON.stringify([
+        {ferie:[],mal:[],str:[]},
+        {ferie:[],mal:[],str:[]},
+        {ferie:[],mal:[],str:[]}
+    ]));
+    localStorage.setItem("archivioBuste", JSON.stringify([]));
+
+    alert("✅ " + annoVecchio + " archiviato. Ora vai su Genera Turno per riempire il " + annoNuovo);
+    location.reload();
+}
 function goExternalHome(){window.location.href="https://apps.powerapps.com/play/e/default-c16e514b-893e-4a01-9a30-b8fef514a650/a/7d09e9b8-80d7-4289-8177-315e883dc6f0?tenantId=c16e514b-893e-4a01-9a30-b8fef514a650&hint=83de810f-aed1-424e-9508-763f8c564cd6&sourcetime=1791037994763&screen=Home_pc";}
 </script>
 </body>
