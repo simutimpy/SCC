@@ -1502,11 +1502,11 @@ f_testo = `
 ">
 
 <tr><td>
-Buongiorno,
+Buongiorno Giuseppe,
 </td></tr>
 
 <tr><td style="padding-top:10px;">
-Il sottoscritto <b>${nome}</b>, richiede n. <b>${giorni}</b> giorni di ferie 
+Il sottoscritto <b>${nome}</b>, richiedo n. <b>${giorni}</b> giorni di ferie 
 nel periodo compreso tra il <b>${dal}</b> e il <b>${al}</b>.
 </td></tr>
 
@@ -1530,8 +1530,8 @@ function apriMailFerie(){
 
  let nome = document.getElementById("f_nome").value;
 
- let to = "roberto.infurna@eni.com";
- let cc = "giuseppe.scerra@eni.com;graziana.pardo@eni.com";
+ let to = "giuseppe.scerra@eni.com";
+ let cc = "roberto.infurna@eni.com;graziana.pardo@eni.com";
 
  let subject = `Richesta ferie ${nome}`;
 
