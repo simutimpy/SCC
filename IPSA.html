@@ -192,36 +192,72 @@ async function genera(){
   }
 
   const data = new Date(meseInput);
-  const mesi = ["GENNAIO","FEBBRAIO","MARZO","APRILE","MAGGIO","GIUGNO","LUGLIO","AGOSTO","SETTEMBRE","OTTOBRE","NOVEMBRE","DICEMBRE"];
+
+  const mesi = [
+    "GENNAIO","FEBBRAIO","MARZO","APRILE",
+    "MAGGIO","GIUGNO","LUGLIO","AGOSTO",
+    "SETTEMBRE","OTTOBRE","NOVEMBRE","DICEMBRE"
+  ];
+
   const meseNome = mesi[data.getMonth()];
   const anno = data.getFullYear();
 
   const prev = await readExcel(document.getElementById("prev").files);
-
   const curr = leggiAnteprima() ?? await readExcel(document.getElementById("curr").files);
 
   const imprese = Object.keys(curr).sort();
 
   const values = Object.values(curr);
-  const avg = values.reduce((a,b)=>a+b,0)/values.length;
-  const std = Math.sqrt(values.reduce((a,b)=>a+Math.pow(b-avg,2),0)/values.length);
+
+  const avg =
+    values.reduce((a,b)=>a+b,0) /
+    values.length;
+
+  const std = Math.sqrt(
+    values.reduce((a,b)=>a+Math.pow(b-avg,2),0) /
+    values.length
+  );
 
   const { jsPDF } = window.jspdf;
-  const doc = new jsPDF("portrait");
+
+  const doc = new jsPDF({
+    orientation:"portrait",
+    unit:"mm",
+    format:"a3"
+  });
+
+  const pageHeight = doc.internal.pageSize.getHeight();
+  const pageWidth  = doc.internal.pageSize.getWidth();
+
+  const spazioDisponibile = pageHeight - 60;
+
+  let rowHeight = spazioDisponibile / imprese.length;
+
+  rowHeight = Math.min(7,rowHeight);
+  rowHeight = Math.max(3,rowHeight);
+
+  let fontSize = Math.max(
+    5,
+    Math.min(8,rowHeight * 1.2)
+  );
+
+  let iconSize = Math.max(
+    2,
+    Math.min(6,rowHeight - 0.8)
+  );
 
   let y = 10;
 
-  const pageWidth = doc.internal.pageSize.getWidth();
   const tableWidth = 180;
   const startX = (pageWidth - tableWidth) / 2;
 
   const col = {
-    x0: startX,
-    x1: startX + 60,
-    x2: startX + 90,
-    x3: startX + 115,
-    x4: startX + 140,
-    x5: startX + 180
+    x0:startX,
+    x1:startX+60,
+    x2:startX+90,
+    x3:startX+115,
+    x4:startX+140,
+    x5:startX+180
   };
 
   const logoEni = localStorage.getItem("logoEni");
@@ -230,116 +266,176 @@ async function genera(){
   const h = 28;
 
   doc.setFillColor(130,130,130);
-  doc.rect(col.x0, y, col.x1-col.x0, h, "F");
-  doc.rect(col.x0, y, col.x1-col.x0, h);
+  doc.rect(col.x0,y,col.x1-col.x0,h,"F");
+  doc.rect(col.x0,y,col.x1-col.x0,h);
 
   if(logoEni){
+
     let imgW = (col.x1-col.x0)*0.7;
     let imgH = h*0.6;
-    doc.addImage(logoEni,"PNG",col.x0 + ((col.x1-col.x0)-imgW)/2,y + (h-imgH)/2,imgW,imgH);
+
+    doc.addImage(
+      logoEni,
+      "PNG",
+      col.x0 + ((col.x1-col.x0)-imgW)/2,
+      y + (h-imgH)/2,
+      imgW,
+      imgH
+    );
   }
 
   doc.setFillColor(255,192,0);
-  doc.rect(col.x1, y, col.x4-col.x1, h, "F");
-  doc.rect(col.x1, y, col.x4-col.x1, h);
+  doc.rect(col.x1,y,col.x4-col.x1,h,"F");
+  doc.rect(col.x1,y,col.x4-col.x1,h);
 
   let cx = col.x1 + (col.x4-col.x1)/2;
 
   doc.setFont("Helvetica","bold");
   doc.setFontSize(11);
-  doc.text(`IPSA ${area}`, cx, y+7,null,null,"center");
-  doc.setFontSize(9);
-  doc.text("PATTO PER LA SICUREZZA & AMBIENTE", cx, y+13,null,null,"center");
-  doc.setFontSize(11);
-  doc.text("IPSA MEDIO", cx, y+19,null,null,"center");
-  doc.text(`${meseNome} ${anno}`, cx, y+25,null,null,"center");
 
-  doc.rect(col.x4, y, col.x5-col.x4, h);
+  doc.text(`IPSA ${area}`,cx,y+7,null,null,"center");
+
+  doc.setFontSize(9);
+  doc.text("PATTO PER LA SICUREZZA & AMBIENTE",cx,y+13,null,null,"center");
+
+  doc.setFontSize(11);
+  doc.text("IPSA MEDIO",cx,y+19,null,null,"center");
+  doc.text(`${meseNome} ${anno}`,cx,y+25,null,null,"center");
+
+  doc.rect(col.x4,y,col.x5-col.x4,h);
+
   doc.setFillColor(255,255,255);
-  doc.rect(col.x4, y, col.x5-col.x4, h/2, "F");
-  doc.rect(col.x4, y, col.x5-col.x4, h/2);
+  doc.rect(col.x4,y,col.x5-col.x4,h/2,"F");
+  doc.rect(col.x4,y,col.x5-col.x4,h/2);
 
   if(logoScc){
+
     let boxW = col.x5-col.x4;
     let boxH = h/2;
-    let imgW = boxW * 0.45;
-    let imgH = boxH * 0.9;
-    doc.addImage(logoScc,"PNG",col.x4 + (boxW-imgW)/2,y + (boxH-imgH)/2,imgW,imgH);
+
+    let imgW = boxW*0.45;
+    let imgH = boxH*0.9;
+
+    doc.addImage(
+      logoScc,
+      "PNG",
+      col.x4 + (boxW-imgW)/2,
+      y + (boxH-imgH)/2,
+      imgW,
+      imgH
+    );
   }
 
   doc.setFillColor(255,192,0);
-  doc.rect(col.x4, y+h/2, col.x5-col.x4, h/2, "F");
-  doc.rect(col.x4, y+h/2, col.x5-col.x4, h/2);
+  doc.rect(col.x4,y+h/2,col.x5-col.x4,h/2,"F");
+  doc.rect(col.x4,y+h/2,col.x5-col.x4,h/2);
 
   doc.setFontSize(8);
-  doc.text(`IPSA MEDIO: ${avg.toFixed(2)}`, col.x4+2, y+h/2+5);
-  doc.text(`Dev.Std: ${std.toFixed(2)}`, col.x4+2, y+h/2+10);
+  doc.text(`IPSA MEDIO: ${avg.toFixed(2)}`,col.x4+2,y+h/2+5);
+  doc.text(`Dev.Std: ${std.toFixed(2)}`,col.x4+2,y+h/2+10);
 
-  doc.line(col.x1, y, col.x1, y+h);
-  doc.line(col.x4, y, col.x4, y+h);
+  doc.line(col.x1,y,col.x1,y+h);
+  doc.line(col.x4,y,col.x4,y+h);
 
   y += h;
 
   doc.setFillColor(255,255,0);
-  doc.rect(col.x0, y, col.x5-col.x0, 8, "F");
-  doc.rect(col.x0, y, col.x5-col.x0, 8);
 
-  doc.line(col.x1, y, col.x1, y+8);
-  doc.line(col.x2, y, col.x2, y+8);
-  doc.line(col.x3, y, col.x3, y+8);
-  doc.line(col.x4, y, col.x4, y+8);
+  doc.rect(col.x0,y,col.x5-col.x0,8,"F");
+  doc.rect(col.x0,y,col.x5-col.x0,8);
+
+  doc.line(col.x1,y,col.x1,y+8);
+  doc.line(col.x2,y,col.x2,y+8);
+  doc.line(col.x3,y,col.x3,y+8);
+  doc.line(col.x4,y,col.x4,y+8);
 
   doc.setFontSize(8);
-  doc.text("IMPRESA", col.x0+(col.x1-col.x0)/2, y+5,null,null,"center");
-  doc.text("IPSA", col.x1+(col.x2-col.x1)/2, y+5,null,null,"center");
-  doc.text("TREND", col.x2+(col.x3-col.x2)/2, y+5,null,null,"center");
-  doc.text("META", col.x3+(col.x4-col.x3)/2, y+5,null,null,"center");
-  doc.text("NOTE", col.x4+(col.x5-col.x4)/2, y+5,null,null,"center");
+
+  doc.text("IMPRESA",col.x0+(col.x1-col.x0)/2,y+5,null,null,"center");
+  doc.text("IPSA",col.x1+(col.x2-col.x1)/2,y+5,null,null,"center");
+  doc.text("TREND",col.x2+(col.x3-col.x2)/2,y+5,null,null,"center");
+  doc.text("META",col.x3+(col.x4-col.x3)/2,y+5,null,null,"center");
+  doc.text("NOTE",col.x4+(col.x5-col.x4)/2,y+5,null,null,"center");
 
   y += 8;
 
   doc.setFont("Helvetica","normal");
+  doc.setFontSize(fontSize);
 
   imprese.forEach((imp,index)=>{
 
     let currVal = curr[imp];
     let prevVal = prev[imp] ?? 100;
-    let trend = getTrend(currVal, prevVal);
-    let meta = getMeta(currVal);
 
-    if(y > 270){
-      doc.addPage();
-      y = 10;
-    }
+    let trend = getTrend(currVal,prevVal);
+    let meta  = getMeta(currVal);
 
-    doc.setFillColor(index%2===0?255:230);
-    doc.rect(col.x0,y,col.x5-col.x0,7,"F");
-    doc.rect(col.x0,y,col.x5-col.x0,7);
+    doc.setFillColor(index % 2 === 0 ? 255 : 230);
 
-    doc.line(col.x1,y,col.x1,y+7);
-    doc.line(col.x2,y,col.x2,y+7);
-    doc.line(col.x3,y,col.x3,y+7);
-    doc.line(col.x4,y,col.x4,y+7);
+    doc.rect(col.x0,y,col.x5-col.x0,rowHeight,"F");
+    doc.rect(col.x0,y,col.x5-col.x0,rowHeight);
 
-    doc.text(imp.substring(0,25),col.x0+(col.x1-col.x0)/2,y+5,null,null,"center");
-    doc.text(currVal.toString(),col.x1+(col.x2-col.x1)/2,y+5,null,null,"center");
+    doc.line(col.x1,y,col.x1,y+rowHeight);
+    doc.line(col.x2,y,col.x2,y+rowHeight);
+    doc.line(col.x3,y,col.x3,y+rowHeight);
+    doc.line(col.x4,y,col.x4,y+rowHeight);
+
+    doc.text(
+      imp.substring(0,25),
+      col.x0+(col.x1-col.x0)/2,
+      y + rowHeight - 0.8,
+      null,
+      null,
+      "center"
+    );
+
+    doc.text(
+      currVal.toString(),
+      col.x1+(col.x2-col.x1)/2,
+      y + rowHeight - 0.8,
+      null,
+      null,
+      "center"
+    );
 
     let tImg = localStorage.getItem(trend);
+
     if(tImg){
-      let cx = col.x2+(col.x3-col.x2)/2;
-      doc.addImage(tImg,"PNG",cx-3,y+1,6,6);
+
+      let tx = col.x2+(col.x3-col.x2)/2;
+
+      doc.addImage(
+        tImg,
+        "PNG",
+        tx-iconSize/2,
+        y+(rowHeight-iconSize)/2,
+        iconSize,
+        iconSize
+      );
     }
 
     let mImg = localStorage.getItem(meta);
+
     if(mImg){
-      let cx = col.x3+(col.x4-col.x3)/2;
-      doc.addImage(mImg,"PNG",cx-3,y+1,6,6);
+
+      let mx = col.x3+(col.x4-col.x3)/2;
+
+      doc.addImage(
+        mImg,
+        "PNG",
+        mx-iconSize/2,
+        y+(rowHeight-iconSize)/2,
+        iconSize,
+        iconSize
+      );
     }
 
-    y += 7;
+    y += rowHeight;
+
   });
 
   doc.save(`Trend_IPSA_${area}_${meseNome}_${anno}.pdf`);
+
 }
 function goExternalHome(){window.location.href="https://apps.powerapps.com/play/e/default-c16e514b-893e-4a01-9a30-b8fef514a650/a/7d09e9b8-80d7-4289-8177-315e883dc6f0?tenantId=c16e514b-893e-4a01-9a30-b8fef514a650&hint=83de810f-aed1-424e-9508-763f8c564cd6&sourcetime=1791037994763&screen=Home_pc";}
 </script>
