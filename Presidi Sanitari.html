@@ -1,0 +1,1000 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Gestione Presidi Sanitari</title>
+<style>
+body{margin:0;font-family:Arial,sans-serif;background:#f4f4f4;}
+header{background:#0057B8;color:#fff;padding:15px;font-size:24px;font-weight:bold;display:flex;align-items:center;gap:15px;}
+.homeIcon{cursor:pointer;display:inline-flex;align-items:center;justify-content:center;font-size:26px;}
+.footer{position:fixed;bottom:10px;left:10px;font-size:12px;color:#666;}
+.container{display:flex;height:calc(100vh - 60px);}
+.sidebar{width:260px;background:#fff;border-right:1px solid #ccc;overflow:auto;padding:10px;}
+.main{flex:1;padding:20px;overflow:auto;}
+button{background:#0057B8;color:#fff;border:none;padding:10px 12px;cursor:pointer;border-radius:5px;font-size:14px;}
+button:hover{background:#004494;}
+input,select,textarea{width:100%;padding:8px;margin-bottom:10px;border:2px solid #0057B8;border-radius:5px;box-sizing:border-box;}
+textarea{resize:vertical;min-height:120px;}
+table{width:100%;border-collapse:collapse;background:#fff;table-layout:fixed;}
+th,td{border:1px solid #999;padding:5px;text-align:center;word-wrap:break-word;overflow-wrap:break-word;}
+th{background:#efefef;font-weight:bold;}
+.cardsGrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:10px;}
+.card{background:#fff;padding:15px;border-radius:10px;box-shadow:0 2px 5px rgba(0,0,0,.1);}
+.scaduto{border-left:6px solid #d10000;}
+.scadenza{border-left:6px solid #ff9900;}
+.ok{border-left:6px solid #008542;}
+.pageTitle{font-size:26px;font-weight:bold;text-align:center;margin-bottom:20px;}
+.subTitle{font-size:20px;font-weight:bold;margin-bottom:15px;color:#0057B8;}
+.logo{height:45px;width:auto;}
+.hidden{display:none!important;}
+.menuButton{width:100%;margin-bottom:8px;text-align:left;}
+.dashboardBox{background:#fff;padding:15px;border-radius:10px;text-align:center;box-shadow:0 2px 5px rgba(0,0,0,.1);}
+.dashboardNumber{font-size:36px;font-weight:bold;color:#0057B8;}
+.sezione{background:#fff;padding:15px;border-radius:10px;margin-bottom:15px;}
+.toolbar{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:15px;}
+.emailPreview{background:#fff;border:1px solid #ccc;border-radius:10px;padding:15px;white-space:pre-wrap;line-height:1.6;}
+.alertRosso{background:#ffdede;border-left:6px solid #d10000;padding:10px;}
+.alertGiallo{background:#fff2cc;border-left:6px solid #ff9900;padding:10px;}
+.alertVerde{background:#d9ead3;border-left:6px solid #008542;padding:10px;}
+.allegatoMini{display:flex;justify-content:space-between;align-items:center;background:#fff;padding:8px 12px;margin-top:6px;border-radius:8px;box-shadow:0 1px 4px rgba(0,0,0,.1);}
+.allegatoMini h4{margin:0;font-size:15px;}
+.allegatoAzioni{display:flex;gap:5px;}
+.btnApri{width:auto;padding:6px 10px;font-size:12px;background:#28a745;}
+.btnElimina{width:auto;padding:6px 10px;font-size:12px;background:#dc3545;}
+@media(max-width:900px){.container{flex-direction:column;}.sidebar{width:100%;height:auto;border-right:none;border-bottom:1px solid #ccc;}.cardsGrid{grid-template-columns:1fr;}}
+</style>
+<body>
+<header>
+<span class="homeIcon" onclick="goExternalHome()">🏠</span>
+<span>Presidi Sanitari DICS</span>
+</header>
+<div class="container">
+<div class="sidebar">
+<button class="menuButton" onclick="showPage('dashboardPage')">📊 Dashboard</button>
+<button class="menuButton" onclick="showPage('allegatoBPage')">📦 Allegato B - Infermeria</button>
+<button class="menuButton" onclick="showPage('allegatoCPage')">🚑 Allegato C - Pacchetti Medicazione</button>
+<button class="menuButton" onclick="showPage('allegatoDPage')">🏥 Allegato D - Cassette PS</button>
+<button class="menuButton" onclick="showPage('allegatoGPage')">⚡ Allegato G - Defibrillatori</button>
+<button class="menuButton" onclick="showPage('ordiniPage')">📧 Ordini</button>
+<button class="menuButton" onclick="showPage('emailPage')">✉️ Email</button>
+</div>
+<div class="main">
+<div id="dashboardPage">
+<div class="pageTitle">Dashboard Presidi Sanitari</div>
+<div class="cardsGrid">
+<div class="card scadenza">
+<h3>Totale Allegati</h3>
+<div class="dashboardNumber" id="tot60">0</div>
+</div>
+<div class="card ok">
+<h3>Presidi Totali</h3>
+<div class="dashboardNumber" id="totPresidi">0</div>
+</div>
+<div class="card scaduto">
+<h3>Scadenze entro 30 giorni</h3>
+<div class="dashboardNumber" id="tot30">0</div>
+</div>
+</div>
+</div>
+<div id="allegatoBPage" class="hidden">
+<div class="pageTitle">Allegato B - Infermeria</div>
+<div class="card">
+<label>Nuova Infermeria</label>
+<input id="bLuogo" placeholder="Es. Infermeria Casalborsetti">
+<button onclick="creaAllegatoB()">➕ Nuova Infermeria</button>
+</div>
+<div id="listaAllegatiB"></div>
+<div id="dettaglioAllegatoB" class="hidden"></div>
+</div>
+<div id="allegatoCPage" class="hidden">
+<div class="pageTitle">Allegato C - Pacchetti Medicazione</div>
+<div class="card">
+<label>Nuovo Pacchetto</label>
+<input id="cLuogo" placeholder="Es. Auto HSE Advisor">
+<button onclick="creaAllegatoC()">➕ Nuovo Pacchetto</button>
+</div>
+<div id="listaAllegatiC"></div>
+<div id="dettaglioAllegatoC" class="hidden"></div>
+</div>
+<div id="allegatoDPage" class="hidden">
+<div class="pageTitle">Allegato D - Cassette Pronto Soccorso</div>
+<div class="card">
+<label>Nuova Ubicazione</label>
+<input id="dLuogo" placeholder="Es. Dosso Centro">
+<button onclick="creaAllegatoD()">
+➕ Nuovo Allegato
+</button>
+</div>
+<div id="listaAllegatiD"></div>
+<div id="dettaglioAllegatoD" class="hidden"></div>
+</div>
+<div id="allegatoGPage" class="hidden">
+<div class="pageTitle">Allegato G - Defibrillatori</div>
+<div class="card">
+<label>Luogo</label>
+<input id="gLuogo" placeholder="Es. Centrale Gas Casalborsetti">
+<label>Matricola DAE</label>
+<input id="gMatricola" placeholder="Es. D00000096330">
+<button onclick="creaAllegatoG()">➕ Nuovo Defibrillatore</button>
+</div>
+<div id="listaAllegatiG"></div>
+<div id="dettaglioAllegatoG" class="hidden"></div>
+</div>
+<div id="ordiniPage" class="hidden">
+<div class="pageTitle">Ordini Materiale</div>
+<div class="card">
+<button onclick="mostraOrdine()">
+➕ Genera Ordine
+</button>
+</div>
+<div id="ordiniAutomatici"></div>
+</div>
+<div id="emailPage" class="hidden">
+<div class="pageTitle">Generazione Email</div>
+<div class="card">
+<label>Destinatario</label>
+<input id="destinatarioMail" value="Filippo.Ensabella@eni.com">
+<label>Mese di riferimento</label>
+<select id="meseOrdine"></select>
+<label>Anteprima Email</label>
+<textarea id="emailPreview"></textarea>
+<div class="toolbar">
+<button onclick="generaEmail()">Genera Mail</button>
+<button onclick="copiaEmail()">Copia</button>
+<button onclick="apriOutlook()">Apri Outlook</button>
+</div>
+</div>
+</div>
+<div class="footer">
+By Simone Lacognata
+</div>
+<script>
+const DB={
+infermeria:[],
+pacchetti:[],
+cassette:[],
+defibrillatori:[],
+ordini:[],
+storico:[]
+};
+const MODELLO_ALLEGATO_B=[
+{qta:1,materiale:"Lettino",descrizione:""},
+{qta:1,materiale:"Barella",descrizione:"OK"},
+{qta:1,materiale:"Contenuto Cassetta di Pronto Soccorso",descrizione:""},
+{qta:1,materiale:"Lenzuolo in carta a strappo",descrizione:"Rotolo 110 strappi"},
+{qta:1,materiale:"Triderm (flacone da 250 ml)",descrizione:"Sapone liquido"},
+{qta:1,materiale:"Surgifix n° 3",descrizione:"Rete per bendaggio"},
+{qta:1,materiale:"Surgifix n° 4",descrizione:"Rete per bendaggio"},
+{qta:1,materiale:"Surgifix n° 5",descrizione:"Rete per bendaggio"},
+{qta:1,materiale:"Cerotti Steri-strips",descrizione:""},
+{qta:2,materiale:"Cerotto setificato anallergico cm 5x5 m (confezione)",descrizione:""},
+{qta:1,materiale:"Acqua borica (flacone da 250 ml)",descrizione:"Liquido per bagni oculari"},
+{qta:1,materiale:"Coperta isotermica",descrizione:""},
+{qta:1,materiale:"Tavola spinale completa di cinghia ragno, fermacapo e collare cervicale tipo stifnek",descrizione:""},
+{qta:2,materiale:"Bombola di ossigeno medicale da 1 l (con manometro ed erogatore) usa e getta",descrizione:"Solo per siti con H2S"},
+{qta:3,materiale:"Maschera facciale per erogazione ossigeno tipo Ventimask",descrizione:"Solo per siti con H2S"}
+];
+const MODELLO_ALLEGATO_C=[
+{qta:2,materiale:"Guanti sterili monouso"},
+{qta:1,materiale:"Soluzione cutanea di iodopovidone al 10% flacone da 125 ml"},
+{qta:1,materiale:"Soluzione fisiologica 250 ml"},
+{qta:3,materiale:"Compresse di garza sterile cm 10 x cm 10 in buste singole"},
+{qta:1,materiale:"Compresse di garza sterile cm 18 x cm 40 in buste singole"},
+{qta:1,materiale:"Pinzetta sterile monouso"},
+{qta:1,materiale:"Cotone Idrofilo (confezione)"},
+{qta:1,materiale:"Cerotti di varie misure (confezione)"},
+{qta:1,materiale:"Cerotto alto cm 2.5 (rotolo)"},
+{qta:1,materiale:"Forbice"},
+{qta:1,materiale:"Laccio emostatico"},
+{qta:1,materiale:"Ghiaccio monouso (buste)"},
+{qta:1,materiale:"Sacchetti monouso per raccolta di rifiuti sanitari"},
+{qta:1,materiale:"Benda orlata alta cm 10 (rotolo)"}
+];
+const MODELLO_ALLEGATO_D=[
+{qta:1,materiale:"Acqua ossigenata 10 Vol. (flacone da 200 g)"},
+{qta:2,materiale:"Soluzione cutanea di iodopovidone al 10% flacone da 500 ml"},
+{qta:3,materiale:"Soluzione fisiologica 500 ml"},
+{qta:2,materiale:"Benda orlata alta cm 5 (rotolo)"},
+{qta:10,materiale:"Compresse di garza sterile cm 10 x cm 10 in buste singole"},
+{qta:2,materiale:"Compresse di garza sterile cm 18 x cm 40 in buste singole"},
+{qta:1,materiale:"Rete elastica di misura media (suppongo misura n°3)"},
+{qta:2,materiale:"Cerotti di varie misure (confezione)"},
+{qta:2,materiale:"Cerotto alto cm 2.5 (rotolo)"},
+{qta:2,materiale:"Ghiaccio monouso (buste)"},
+{qta:1,materiale:"Cotone Idrofilo (confezione)"},
+{qta:1,materiale:"Forbici"},
+{qta:3,materiale:"Laccio emostatico"},
+{qta:2,materiale:"Pinzette sterili monouso"},
+{qta:2,materiale:"Teli sterili monouso"},
+{qta:2,materiale:"Sacchetti monouso per raccolta di rifiuti sanitari"},
+{qta:1,materiale:"Termometro"},
+{qta:1,materiale:"Apparecchio per la misurazione della pressione arteriosa"},
+{qta:1,materiale:"Pocket mask"},
+{qta:5,materiale:"Guanti sterili monouso"},
+{qta:1,materiale:"Visiera paraschizzi"}
+];
+function showPage(id){
+document.querySelectorAll('.main > div').forEach(p=>p.classList.add('hidden'));
+document.getElementById(id).classList.remove('hidden');
+}
+function salvaDati(){
+localStorage.setItem('presidiDB',JSON.stringify(DB));
+}
+function caricaDati(){
+const dati=localStorage.getItem('presidiDB');
+if(dati){
+const json=JSON.parse(dati);
+Object.assign(DB,json);
+}
+}
+function contaScadenze30(){
+let totale=0;
+[...DB.infermeria,...DB.cassette,...DB.pacchetti].forEach(allegato=>{
+if(allegato.materiali){
+allegato.materiali.forEach(m=>{
+if((m.richiesta||0)>0){
+totale++;
+}
+});
+}
+});
+DB.defibrillatori.forEach(dae=>{
+if(dae.batteria){
+let giorni=Math.floor(
+(new Date(dae.batteria)-new Date())/(1000*60*60*24)
+);
+if(giorni<=30){
+totale++;
+}
+}
+if(dae.elettrodi){
+let giorni=Math.floor(
+(new Date(dae.elettrodi)-new Date())*(1000*60*60*24)
+);
+if(giorni<=30){
+totale++;
+}
+}
+});
+return totale;
+}
+function aggiornaDashboard(){
+let totaleAllegati=
+DB.infermeria.length+
+DB.cassette.length+
+DB.pacchetti.length+
+DB.defibrillatori.length;
+let totalePresidi=0;
+[...DB.infermeria,...DB.cassette,...DB.pacchetti,...DB.defibrillatori].forEach(allegato=>{
+if(allegato.materiali){
+totalePresidi+=allegato.materiali.length;
+}
+});
+document.getElementById("tot60").innerHTML=totaleAllegati;
+document.getElementById("totPresidi").innerHTML=totalePresidi;
+document.getElementById("tot30").innerHTML=contaScadenze30();
+}
+function formatoData(data){
+if(!data)return '';
+return new Date(data).toLocaleDateString('it-IT');
+}
+function giorniAllaScadenza(data){
+if(!data)return 9999;
+const oggi=new Date();
+const scad=new Date(data);
+return Math.floor((scad-oggi)/(1000*60*60*24));
+}
+function controllaScadenze(){
+let elenco=[];
+[...DB.infermeria,...DB.cassette,...DB.pacchetti].forEach(allegato=>{
+if(allegato.materiali){
+allegato.materiali.forEach(m=>{
+if((m.richiesta||0)>0){
+elenco.push({
+materiale:m.materiale,
+quantita:m.richiesta,
+luogo:allegato.luogo||''
+});
+}
+});
+}
+});
+DB.defibrillatori.forEach(dae=>{
+if(dae.batteria){
+let giorniBatteria=Math.floor(
+(new Date(dae.batteria)-new Date())/(1000*60*60*24)
+);
+if(giorniBatteria<=30){
+elenco.push({
+materiale:"Batteria DAE",
+quantita:1,
+luogo:dae.luogo
+});
+}
+}
+if(dae.elettrodi){
+let giorniElettrodi=Math.floor(
+(new Date(dae.elettrodi)-new Date())/(1000*60*60*24)
+);
+if(giorniElettrodi<=30){
+elenco.push({
+materiale:"Elettrodi DAE",
+quantita:1,
+luogo:dae.luogo
+});
+}
+}
+});
+return elenco;
+}
+function caricaMesiOrdini(){
+let html='<option value="">Seleziona Ordine</option>';
+DB.ordini.forEach(o=>{
+html+='<option value="'+o.id+'">'+o.mese+'</option>';
+});
+document.getElementById("meseOrdine").innerHTML=html;
+}
+function generaEmail(){
+let idOrdine=document.getElementById("meseOrdine").value;
+let ordine=DB.ordini.find(x=>x.id==idOrdine);
+if(!ordine){
+alert("Selezionare un ordine");
+return;
+}
+let riepilogo={};
+ordine.materiali.forEach(m=>{
+if(!riepilogo[m.materiale]){
+riepilogo[m.materiale]=0;
+}
+riepilogo[m.materiale]+=m.quantita;
+});
+let elenco='';
+Object.keys(riepilogo).forEach(materiale=>{
+elenco+='N°'+riepilogo[materiale]+' '+materiale+'\n';
+});
+const destinatario=
+document.getElementById('destinatarioMail').value;
+const corpo=
+'Ciao Filippo buon pomeriggio,\n\n'+
+'con la presente sono a chiederti il reintegro dei presidi in scadenza con il seguente materiale:\n\n'+
+elenco+
+'\nRimango a disposizione.\n';
+document.getElementById("emailPreview").value=corpo;
+return{
+to:destinatario,
+body:corpo
+};
+}
+function copiaEmail(){
+const area=document.getElementById('emailPreview');
+if(!area)return;
+navigator.clipboard.writeText(area.value);
+alert('Email copiata');
+}
+function apriOutlook(){
+let destinatario =
+document.getElementById("destinatarioMail").value;
+let testo =
+document.getElementById("emailPreview").value;
+navigator.clipboard.writeText(testo);
+let cc =
+"davide.lomastro@eni.com;"+
+"massimo.sciaulino@eni.com;"+
+"Antonio.Pizzardi@eni.com;"+
+"Alessandro.Collini@eni.com;"+
+"matteo.bellotti@eni.com;"+
+"francesco.latini@eni.com;"+
+"Graziano.Tuzzetti@eni.com";
+window.location.href =
+"mailto:"+
+destinatario+
+"?cc="+encodeURIComponent(cc)+
+"&subject="+encodeURIComponent("Reintegro Presidi Sanitari");
+}
+function esportaWord(){
+alert('Funzione Export Word da collegare successivamente');
+}
+function aggiungiStorico(testo){
+DB.storico.push({
+data:new Date().toLocaleString('it-IT'),
+azione:testo
+});
+salvaDati();
+}
+function generaOrdine(){
+const materiali=controllaScadenze();
+let riepilogo={};
+materiali.forEach(m=>{
+if(!riepilogo[m.materiale]){
+riepilogo[m.materiale]=0;
+}
+riepilogo[m.materiale]+=m.quantita;
+});
+let testo='';
+Object.keys(riepilogo).forEach(materiale=>{
+let quantita=riepilogo[materiale];
+testo+='N°'+quantita+' '+materiale+'\n';
+});
+return testo;
+}
+function mostraOrdine(){
+
+let mese=new Date().toLocaleDateString(
+'it-IT',
+{
+month:'long',
+year:'numeric'
+}
+).toUpperCase();
+let materiali=controllaScadenze();
+if(materiali.length===0){
+alert("Nessun materiale da ordinare");
+return;
+}
+let id=Date.now();
+DB.ordini.push({
+id:id,
+data:new Date().toLocaleDateString('it-IT'),
+mese:mese,
+materiali:materiali
+});
+salvaDati();
+renderOrdini();
+caricaMesiOrdini();
+}
+function renderOrdini(){
+let html='';
+DB.ordini.forEach(o=>{
+html+='<div class="card" id="ordine_'+o.id+'">';
+html+='<h3>📦 ORDINE '+o.mese+'</h3>';
+let luoghi={};
+o.materiali.forEach(m=>{
+if(!luoghi[m.luogo]){
+luoghi[m.luogo]=[];
+}
+luoghi[m.luogo].push(m);
+});
+Object.keys(luoghi).forEach(luogo=>{
+html+='<b>'+luogo+'</b><br>';
+luoghi[luogo].forEach(m=>{
+html+='N°'+m.quantita+' '+m.materiale+'<br>';
+});
+html+='<br>';
+});
+html+='<button onclick="stampaOrdine('+o.id+')">Stampa</button> ';
+html+='<button onclick="eliminaOrdine('+o.id+')">Elimina</button>';
+html+='</div>';
+});
+document.getElementById("ordiniAutomatici").innerHTML=html;
+}
+function stampaOrdine(id){
+let ordine=DB.ordini.find(x=>x.id==id);
+if(!ordine)return;
+let html='';
+let luoghi={};
+ordine.materiali.forEach(m=>{
+if(!luoghi[m.luogo]){
+luoghi[m.luogo]=[];
+}
+luoghi[m.luogo].push(m);
+});
+html+='<h2>ORDINE MATERIALE '+ordine.mese+'</h2>';
+Object.keys(luoghi).forEach(luogo=>{
+html+='<h3>'+luogo+'</h3><ul>';
+luoghi[luogo].forEach(m=>{
+html+='<li>'+m.materiale+' - Q.tà '+m.quantita+'</li>';
+});
+html+='</ul>';
+});
+let finestra=window.open('','','width=900,height=700');
+finestra.document.write(
+'<html><head><title>Ordine Materiale</title><style>body{font-family:Arial;padding:20px;}h2{text-align:center;}ul{margin-bottom:20px;}</style></head><body>'+html+'</body></html>'
+);
+finestra.document.close();
+finestra.focus();
+finestra.print();
+}
+function eliminaOrdine(id){
+if(!confirm("Vuoi eliminare questo ordine?")){
+return;
+}
+DB.ordini=DB.ordini.filter(x=>x.id!=id);
+salvaDati();
+renderOrdini();
+caricaMesiOrdini();
+}
+function aggiornaRichiesta(riga){
+let qta=parseInt(document.getElementById("qta_"+riga).value)||0;
+let data=document.getElementById("data_"+riga).value;
+let richiesta=document.getElementById("richiesta_"+riga);
+if(!data){
+richiesta.value=0;
+return;
+}
+let oggi=new Date();
+let scadenza=new Date(data);
+let giorni=Math.floor(
+(scadenza-oggi)/(1000*60*60*24)
+);
+if(giorni<=30){
+richiesta.value=qta;
+}else{
+richiesta.value=0;
+}
+}
+function salvaScadenza(id,indice,valore){
+let allegato=DB.cassette.find(x=>x.id==id);
+if(!allegato)return;
+allegato.materiali[indice].scadenza=valore;
+let qta=allegato.materiali[indice].qta;
+let oggi=new Date();
+let scadenza=new Date(valore);
+let giorni=Math.floor(
+(scadenza-oggi)/(1000*60*60*24)
+);
+if(giorni<=30){
+allegato.materiali[indice].richiesta=qta;
+}else{
+allegato.materiali[indice].richiesta=0;
+}
+salvaDati();
+aggiornaDashboard();
+apriPresidiD(id);
+}
+
+function creaAllegatoB(){
+let luogo=document.getElementById("bLuogo").value.trim();
+if(!luogo){
+alert("Inserire il luogo");
+return;
+}
+let id=Date.now();
+DB.infermeria.push({
+id:id,
+luogo:luogo,
+materiali:JSON.parse(JSON.stringify(MODELLO_ALLEGATO_B)).map(m=>({
+qta:m.qta,
+materiale:m.materiale,
+descrizione:m.descrizione||"",
+scadenza:"",
+richiesta:0
+}))
+});
+salvaDati();
+renderAllegatiB();
+aggiornaDashboard();
+document.getElementById("bLuogo").value='';
+}
+function apriAllegatoB(id){
+let allegato=DB.infermeria.find(x=>x.id==id);
+if(!allegato){
+alert("Allegato non trovato");
+return;
+}
+document.getElementById("dettaglioAllegatoB").classList.remove("hidden");
+document.getElementById("dettaglioAllegatoB").innerHTML=
+'<div class="card">'+
+'<h2>🏥 '+allegato.luogo+'</h2>'+
+'<p><b>Presidi Totali:</b> '+allegato.materiali.length+'</p>'+
+'<button onclick="apriPresidiB('+id+')">Gestisci Presidi</button>'+
+'</div>';
+}
+function apriPresidiB(id){
+let allegato=DB.infermeria.find(x=>x.id==id);
+if(!allegato){
+alert("Allegato non trovato");
+return;
+}
+let html='';
+html+='<div class="card">';
+html+='<h2>'+allegato.luogo+'</h2>';
+html+='<table>';
+html+='<tr>';
+html+='<th>Q.tà</th>';
+html+='<th>Materiale</th>';
+html+='<th>Scadenza</th>';
+html+='<th>Descrizione</th>';
+html+='<th>Q.tà Richiesta</th>';
+html+='<tr>';
+allegato.materiali.forEach((m,i)=>{
+html+='<tr>';
+html+='<td>'+m.qta+'</td>';
+html+='<td>'+m.materiale+'</td>';
+html+='<td><input type="date" value="'+(m.scadenza||'')+'" onchange="salvaScadenzaB('+id+','+i+',this.value)"></td>';
+html+='<td>'+(m.descrizione||'')+'</td>';
+html+='<td><input value="'+(m.richiesta||0)+'" readonly></td>';
+html+='</tr>';
+});
+html+='</table>';
+html+='</div>';
+document.getElementById("dettaglioAllegatoB").innerHTML=html;
+}
+function renderAllegatiB(){
+let html='';
+DB.infermeria.forEach(allegato=>{
+html+='<div class="allegatoMini" id="cardB_'+allegato.id+'">';
+html+='<h4>🏥 '+allegato.luogo+'</h4>';
+html+='<div class="allegatoAzioni">';
+html+='<button class="btnApri" onclick="apriAllegatoB('+allegato.id+')">Apri</button>';
+html+='<button onclick="chiediPeriodoControllo(\'B\','+allegato.id+',\'WORD\')">Word</button>';
+html+='<button onclick="chiediPeriodoControllo(\'B\','+allegato.id+',\'PDF\')">PDF</button>';
+html+='<button class="btnElimina" onclick="eliminaAllegatoB('+allegato.id+')">Elimina</button>';
+html+='</div>';
+html+='</div>';
+});
+document.getElementById("listaAllegatiB").innerHTML=html;
+}
+function salvaScadenzaB(id,indice,valore){
+let allegato=DB.infermeria.find(x=>x.id==id);
+if(!allegato)return;
+allegato.materiali[indice].scadenza=valore;
+let qta=allegato.materiali[indice].qta;
+let oggi=new Date();
+let scadenza=new Date(valore);
+let giorni=Math.floor((scadenza-oggi)/(1000*60*60*24));
+if(giorni<=30){
+allegato.materiali[indice].richiesta=qta;
+}else{
+allegato.materiali[indice].richiesta=0;
+}
+salvaDati();
+aggiornaDashboard();
+apriPresidiB(id);
+}
+function eliminaAllegatoB(id){
+if(!confirm("Vuoi eliminare questa infermeria?")){
+return;
+}
+DB.infermeria=DB.infermeria.filter(x=>x.id!=id);
+salvaDati();
+renderAllegatiB();
+document.getElementById("dettaglioAllegatoB").innerHTML='';
+document.getElementById("dettaglioAllegatoB").classList.add("hidden");
+aggiornaDashboard();
+}
+
+function creaAllegatoC(){
+let luogo=document.getElementById("cLuogo").value.trim();
+if(!luogo){
+alert("Inserire il luogo");
+return;
+}
+let id=Date.now();
+DB.pacchetti.push({
+id:id,
+luogo:luogo,
+materiali:JSON.parse(JSON.stringify(MODELLO_ALLEGATO_C)).map(m=>({
+qta:m.qta,
+materiale:m.materiale,
+scadenza:"",
+richiesta:0
+}))
+});
+salvaDati();
+renderAllegatiC();
+aggiornaDashboard();
+document.getElementById("cLuogo").value='';
+}
+function renderAllegatiC(){
+let html='';
+DB.pacchetti.forEach(allegato=>{
+html+='<div class="allegatoMini" id="cardC_'+allegato.id+'">';
+html+='<h4>🚑 '+allegato.luogo+'</h4>';
+html+='<div class="allegatoAzioni">';
+html+='<button class="btnApri" onclick="apriAllegatoC('+allegato.id+')">Apri</button>';
+html+='<button onclick="chiediPeriodoControllo(\'C\','+allegato.id+',\'WORD\')">Word</button>';
+html+='<button onclick="chiediPeriodoControllo(\'C\','+allegato.id+',\'PDF\')">PDF</button>';
+html+='<button class="btnElimina" onclick="eliminaAllegatoC('+allegato.id+')">Elimina</button>';
+html+='</div>';
+html+='</div>';
+});
+document.getElementById("listaAllegatiC").innerHTML=html;
+}
+function apriAllegatoC(id){
+let allegato=DB.pacchetti.find(x=>x.id==id);
+if(!allegato)return;
+document.getElementById("dettaglioAllegatoC").classList.remove("hidden");
+document.getElementById("dettaglioAllegatoC").innerHTML=
+'<div class="card">'+
+'<h2>🚑 '+allegato.luogo+'</h2>'+
+'<p><b>Presidi Totali:</b> '+allegato.materiali.length+'</p>'+
+'<button onclick="apriPresidiC('+id+')">Gestisci Presidi</button>'+
+'</div>';
+}
+function apriPresidiC(id){
+let allegato=DB.pacchetti.find(x=>x.id==id);
+if(!allegato)return;
+let html=
+'<div class="card">'+
+'<h2>'+allegato.luogo+'</h2>'+
+'<table>'+
+'<tr>'+
+'<th>Q.tà</th>'+
+'<th>Materiale</th>'+
+'<th>Scadenza</th>'+
+'<th>Q.tà Richiesta</th>'+
+'</tr>';
+allegato.materiali.forEach((m,i)=>{
+html+=
+'<tr>'+
+'<td>'+m.qta+'</td>'+
+'<td>'+m.materiale+'</td>'+
+'<td><input type="date" value="'+(m.scadenza||'')+'" onchange="salvaScadenzaC('+id+','+i+',this.value)"></td>'+
+'<td><input value="'+(m.richiesta||0)+'" readonly></td>'+
+'</tr>';
+});
+html+='</table></div>';
+document.getElementById("dettaglioAllegatoC").innerHTML=html;
+}
+function salvaScadenzaC(id,indice,valore){
+let allegato=DB.pacchetti.find(x=>x.id==id);
+if(!allegato)return;
+allegato.materiali[indice].scadenza=valore;
+let qta=allegato.materiali[indice].qta;
+let oggi=new Date();
+let scadenza=new Date(valore);
+let giorni=Math.floor((scadenza-oggi)/(1000*60*60*24));
+if(giorni<=30){
+allegato.materiali[indice].richiesta=qta;
+}else{
+allegato.materiali[indice].richiesta=0;
+}
+salvaDati();
+aggiornaDashboard();
+apriPresidiC(id);
+}
+function eliminaAllegatoC(id){
+if(!confirm("Vuoi eliminare questo pacchetto?")){
+return;
+}
+DB.pacchetti=DB.pacchetti.filter(x=>x.id!=id);
+salvaDati();
+renderAllegatiC();
+document.getElementById("dettaglioAllegatoC").innerHTML='';
+document.getElementById("dettaglioAllegatoC").classList.add("hidden");
+aggiornaDashboard();
+}
+
+function creaAllegatoD(){
+let luogo=document.getElementById("dLuogo").value.trim();
+if(!luogo){
+alert("Inserire il luogo");
+return;
+}
+let id=Date.now();
+DB.cassette.push({
+id:id,
+luogo:luogo,
+materiali:JSON.parse(JSON.stringify(MODELLO_ALLEGATO_D)).map(m=>({
+qta:m.qta,
+materiale:m.materiale,
+scadenza:"",
+richiesta:0
+}))
+});
+salvaDati();
+renderAllegatiD();
+aggiornaDashboard();
+document.getElementById("dLuogo").value='';
+}
+function apriAllegatoD(id){
+let allegato=
+DB.cassette.find(x=>x.id==id);
+if(!allegato)return;
+document.getElementById("dettaglioAllegatoD").classList.remove("hidden");
+document.getElementById("dettaglioAllegatoD").innerHTML=
+'<div class="card">'+
+'<h2>📦 '+allegato.luogo+'</h2>'+
+'<p><b>Presidi Totali:</b> '+allegato.materiali.length+'</p>'+
+'<button onclick="apriPresidiD('+id+')">Gestisci Presidi</button>'+
+'</div>';
+}
+function apriPresidiD(id){
+let allegato=DB.cassette.find(x=>x.id==id);
+if(!allegato)return;
+let html=
+'<div class="card">'+
+'<h2>'+allegato.luogo+'</h2>'+
+'<table>'+
+'<tr>'+
+'<th>Q.tà</th>'+
+'<th>Materiale</th>'+
+'<th>Scadenza</th>'+
+'<th>Q.tà Richiesta</th>'+
+'</tr>';
+allegato.materiali.forEach((m,i)=>{
+html +=
+'<tr>'+
+'<td>'+m.qta+'</td>'+
+'<td>'+m.materiale+'</td>'+
+'<td><input type="date" value="'+(m.scadenza||'')+'" onchange="salvaScadenza('+id+','+i+',this.value)"></td>'+
+'<td><input value="'+(m.richiesta||0)+'" readonly></td>'+
+'</tr>';
+});
+html +=
+'</table>'+
+'</div>';
+document.getElementById("dettaglioAllegatoD").innerHTML=html;
+}
+function eliminaAllegatoD(id){
+if(!confirm("Vuoi eliminare questo allegato?")){
+return;
+}
+DB.cassette=
+DB.cassette.filter(x=>x.id!=id);
+salvaDati();
+renderAllegatiD();
+document.getElementById("dettaglioAllegatoD").innerHTML='';
+document.getElementById("dettaglioAllegatoD").classList.add("hidden");
+}
+function renderAllegatiD(){
+let html='';
+DB.cassette.forEach(allegato=>{
+html+='<div class="allegatoMini" id="cardD_'+allegato.id+'">';
+html+='<h4>🏥 '+allegato.luogo+'</h4>';
+html+='<div class="allegatoAzioni">';
+html+='<button class="btnApri" onclick="apriAllegatoD('+allegato.id+')">Apri</button>';
+html+='<button onclick="chiediPeriodoControllo(\'D\','+allegato.id+',\'WORD\')">Word</button>';
+html+='<button onclick="chiediPeriodoControllo(\'D\','+allegato.id+',\'PDF\')">PDF</button>';
+html+='<button class="btnElimina" onclick="eliminaAllegatoD('+allegato.id+')">Elimina</button>';
+html+='</div>';
+html+='</div>';
+});
+document.getElementById("listaAllegatiD").innerHTML=html;
+}
+
+function creaAllegatoG(){
+let luogo=document.getElementById("gLuogo").value.trim();
+let matricola=document.getElementById("gMatricola").value.trim();
+if(!luogo||!matricola){
+alert("Inserire luogo e matricola");
+return;
+}
+let id=Date.now();
+DB.defibrillatori.push({
+id:id,
+luogo:luogo,
+matricola:matricola,
+batteria:"",
+elettrodi:"",
+verifiche:[
+{mese:"Gennaio",data:""},
+{mese:"Febbraio",data:""},
+{mese:"Marzo",data:""},
+{mese:"Aprile",data:""},
+{mese:"Maggio",data:""},
+{mese:"Giugno",data:""},
+{mese:"Luglio",data:""},
+{mese:"Agosto",data:""},
+{mese:"Settembre",data:""},
+{mese:"Ottobre",data:""},
+{mese:"Novembre",data:""},
+{mese:"Dicembre",data:""}
+]
+});
+salvaDati();
+renderAllegatiG();
+aggiornaDashboard();
+document.getElementById("gLuogo").value="";
+document.getElementById("gMatricola").value="";
+}
+function renderAllegatiG(){
+let html='';
+DB.defibrillatori.forEach(dae=>{
+html+=
+'<div class="allegatoMini" id="cardG_'+dae.id+'">'+
+'<h4>⚡ '+dae.luogo+'</h4>'+
+'<div class="allegatoAzioni">'+
+'<button class="btnApri" onclick="apriAllegatoG('+dae.id+')">Apri</button>'+
+'<button class="btnElimina" onclick="eliminaAllegatoG('+dae.id+')">Elimina</button>'+
+'</div>'+
+'</div>';
+});
+document.getElementById("listaAllegatiG").innerHTML=html;
+}
+function apriAllegatoG(id){
+let dae=DB.defibrillatori.find(x=>x.id==id);
+if(!dae)return;
+let html=
+'<div class="card">'+
+'<h2>⚡ '+dae.luogo+'</h2>'+
+'<p><b>Matricola:</b> '+dae.matricola+'</p>'+
+'<label>Scadenza Batteria</label>'+
+'<input type="date" value="'+(dae.batteria||'')+'" onchange="salvaDAE('+id+',\'batteria\',this.value)">' +
+'<label>Scadenza Elettrodi</label>'+
+'<input type="date" value="'+(dae.elettrodi||'')+'" onchange="salvaDAE('+id+',\'elettrodi\',this.value)">' +
+'<h3>Registro Verifiche</h3>'+
+'<table>'+
+'<tr>'+
+'<th>Mese</th>'+
+'<th>Data Verifica</th>'+
+'</tr>';
+dae.verifiche.forEach((v,i)=>{
+html+=
+'<tr>'+
+'<td>'+v.mese+'</td>'+
+'<td><input type="date" value="'+(v.data||'')+'" onchange="salvaVerificaDAE('+id+','+i+',this.value)"></td>'+
+'</tr>';
+});
+html+=
+'</table>'+
+'</div>';
+document.getElementById("dettaglioAllegatoG").classList.remove("hidden");
+document.getElementById("dettaglioAllegatoG").innerHTML=html;
+}
+function salvaDAE(id,campo,valore){
+let dae=DB.defibrillatori.find(x=>x.id==id);
+if(!dae)return;
+dae[campo]=valore;
+salvaDati();
+aggiornaDashboard();
+}
+function eliminaAllegatoG(id){
+if(!confirm("Vuoi eliminare questo defibrillatore?")){
+return;
+}
+DB.defibrillatori=DB.defibrillatori.filter(x=>x.id!=id);
+salvaDati();
+renderAllegatiG();
+document.getElementById("dettaglioAllegatoG").innerHTML='';
+document.getElementById("dettaglioAllegatoG").classList.add("hidden");
+aggiornaDashboard();
+}
+function salvaVerificaDAE(id,indice,valore){
+let dae=DB.defibrillatori.find(x=>x.id==id);
+if(!dae)return;
+dae.verifiche[indice].data=valore;
+salvaDati();
+}
+
+function chiediPeriodoControllo(tipo,id,formato){
+let mese=prompt("Inserisci il mese (es. Ottobre)");
+if(!mese)return;
+let anno=prompt("Inserisci l'anno (es. 2026)");
+if(!anno)return;
+if(formato==="WORD"){
+esportaWord(tipo,id,mese,anno);
+}else{
+esportaPdf(tipo,id,mese,anno);
+}
+}
+function esportaWord(tipo,id,mese,anno){
+fetch(
+"URL_FLOW_POWER_AUTOMATE",
+{
+method:"POST",
+headers:{
+"Content-Type":"application/json"
+},
+body:JSON.stringify({
+tipo:tipo,
+id:id,
+mese:mese,
+anno:anno
+})
+}
+)
+.then(r=>r.json())
+.then(d=>{
+window.open(d.linkWord);
+});
+}
+
+window.onload=function(){
+caricaDati();
+renderAllegatiB();
+renderAllegatiC();
+renderAllegatiD();
+renderAllegatiG();
+aggiornaDashboard();
+showPage('dashboardPage');
+caricaMesiOrdini();
+renderOrdini();
+};
+function goExternalHome(){window.open(
+"https://apps.powerapps.com/play/e/default-c16e514b-893e-4a01-9a30-b8fef514a650/a/7d09e9b8-80d7-4289-8177-315e883dc6f0?tenantId=c16e514b-893e-4a01-9a30-b8fef514a650&hint=83de810f-aed1-424e-9508-763f8c564cd6&sourcetime=1791037994763&screen=Home_pc",
+"_blank");}
+</script>
+</body>
+</html>
