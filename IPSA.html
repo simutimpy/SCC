@@ -57,7 +57,13 @@ button:hover{background:#004d32;}
 <div class="right">
 <h3>Icone</h3>
 <div class="section">SU<input type="file" onchange="salvaImg(this,'up')"><span id="name_up"></span>GIU<input type="file" onchange="salvaImg(this,'down')"><span id="name_down"></span>UGUALE<input type="file" onchange="salvaImg(this,'equal')"><span id="name_equal"></span></div>
-<div class="section">META >100<input type="file" onchange="salvaImg(this,'m1')"><span id="name_m1"></span>META 80-100<input type="file" onchange="salvaImg(this,'m2')"><span id="name_m2"></span>META 60-80<input type="file" onchange="salvaImg(this,'m3')"><span id="name_m3"></span>META <60<input type="file" onchange="salvaImg(this,'m4')"><span id="name_m4"></span></div>
+<div class="section">
+ROSSA 0-59<input type="file" onchange="salvaImg(this,'m1')"><span id="name_m1"></span>
+GIALLA 60-79<input type="file" onchange="salvaImg(this,'m2')"><span id="name_m2"></span>
+GRIGIA 80-89<input type="file" onchange="salvaImg(this,'m3')"><span id="name_m3"></span>
+VERDE 90-99<input type="file" onchange="salvaImg(this,'m4')"><span id="name_m4"></span>
+MANO ≥100<input type="file" onchange="salvaImg(this,'m5')"><span id="name_m5"></span>
+</div>
 <div class="section">Logo ENI<input type="file" onchange="salvaImg(this,'logoEni')"><span id="name_logoEni"></span>Logo SCC<input type="file" onchange="salvaImg(this,'logoScc')"><span id="name_logoScc"></span></div>
 <button onclick="resetImages()">RESET</button>
 </div>
@@ -69,23 +75,17 @@ function salvaImg(input,id){
   let reader = new FileReader();
   reader.onload = () => {
     localStorage.setItem(id, reader.result);
-
     // ✅ salva anche il NOME FILE
     localStorage.setItem(id+"_name", file.name);
-
     // ✅ mostra nome subito
     document.getElementById("name_"+id).innerText = file.name;
-
     alert(id + " salvata ✅");
   };
-
   reader.readAsDataURL(file);
 }
 // mostra nomi salvati al reload
 window.onload = function(){
-
-  const ids = ["up","down","equal","m1","m2","m3","m4","logoEni","logoScc"];
-
+  const ids = ["up","down","equal","m1","m2","m3","m4","m5","logoEni","logoScc"];
   ids.forEach(id=>{
     let nome = localStorage.getItem(id+"_name");
     if(nome){
@@ -95,33 +95,23 @@ window.onload = function(){
 }
 // ✅ LETTURA MULTI FILE + AGGREGAZIONE CORRETTA
 async function readExcel(files){
-
  let map = {};
-
  for(let i=0;i<files.length;i++){
-
    let data = await files[i].arrayBuffer();
    let wb = XLSX.read(data);
    let json = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]]);
-
    json.forEach(r=>{
    if(!r["Impresa"]) return;
-
    let imp = r["Impresa"].trim();
-
    // prima:
    // let val = Number(r["Val. mensile"]);
-
    // dopo:
    let val = Number(r["IPSA"]);
-
    if(!val) return;
-
    if(!map[imp]) map[imp] = [];
    map[imp].push(val);
    });
  }
-
  // MEDIA SOLO SE CI SONO PIU RECORD
  let result = {};
 
@@ -143,10 +133,11 @@ function getTrend(curr, prev){
 }
 // META
 function getMeta(val){
- if(val > 100) return "m1";
- if(val >= 80) return "m2";
- if(val >= 60) return "m3";
- return "m4";
+ if(val >= 100) return "m5"; // Mano
+ if(val >= 90) return "m4";  // Verde
+ if(val >= 80) return "m3";  // Grigia
+ if(val >= 60) return "m2";  // Gialla
+ return "m1";               // Rossa
 }
 // MAIN
 async function generaanteprima(){
