@@ -392,9 +392,6 @@ destinatario+
 "?cc="+encodeURIComponent(cc)+
 "&subject="+encodeURIComponent("Reintegro Presidi Sanitari");
 }
-function esportaWord(){
-alert('Funzione Export Word da collegare successivamente');
-}
 function aggiungiStorico(testo){
 DB.storico.push({
 data:new Date().toLocaleString('it-IT'),
@@ -960,6 +957,23 @@ esportaPdf(tipo,id,mese,anno);
 }
 }
 function esportaWord(tipo,id,mese,anno){
+let dati=null;
+if(tipo==="B"){
+dati=DB.infermeria.find(x=>x.id==id);
+}
+if(tipo==="C"){
+dati=DB.pacchetti.find(x=>x.id==id);
+}
+if(tipo==="D"){
+dati=DB.cassette.find(x=>x.id==id);
+}
+if(tipo==="G"){
+dati=DB.defibrillatori.find(x=>x.id==id);
+}
+if(!dati){
+alert("Allegato non trovato");
+return;
+}
 fetch(
 "URL_FLOW_POWER_AUTOMATE",
 {
@@ -968,16 +982,19 @@ headers:{
 "Content-Type":"application/json"
 },
 body:JSON.stringify({
-tipo:tipo,
-id:id,
-mese:mese,
-anno:anno
+TipoAllegato:tipo,
+Luogo:dati.luogo,
+Mese:mese,
+Anno:anno,
+JsonDati:JSON.stringify(dati)
 })
 }
 )
 .then(r=>r.json())
 .then(d=>{
+if(d.linkWord){
 window.open(d.linkWord);
+}
 });
 }
 
