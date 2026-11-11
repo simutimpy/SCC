@@ -620,7 +620,6 @@ html+='<h4>🏥 '+allegato.luogo+'</h4>';
 html+='<div class="allegatoAzioni">';
 html+='<button class="btnApri" onclick="apriAllegatoB('+allegato.id+')">Apri</button>';
 html+='<button onclick="chiediPeriodoControllo(\'B\','+allegato.id+',\'WORD\')">Word</button>';
-html+='<button onclick="chiediPeriodoControllo(\'B\','+allegato.id+',\'PDF\')">PDF</button>';
 html+='<button class="btnElimina" onclick="eliminaAllegatoB('+allegato.id+')">Elimina</button>';
 html+='</div>';
 html+='</div>';
@@ -686,7 +685,6 @@ html+='<h4>🚑 '+allegato.luogo+'</h4>';
 html+='<div class="allegatoAzioni">';
 html+='<button class="btnApri" onclick="apriAllegatoC('+allegato.id+')">Apri</button>';
 html+='<button onclick="chiediPeriodoControllo(\'C\','+allegato.id+',\'WORD\')">Word</button>';
-html+='<button onclick="chiediPeriodoControllo(\'C\','+allegato.id+',\'PDF\')">PDF</button>';
 html+='<button class="btnElimina" onclick="eliminaAllegatoC('+allegato.id+')">Elimina</button>';
 html+='</div>';
 html+='</div>';
@@ -838,7 +836,6 @@ html+='<h4>🏥 '+allegato.luogo+'</h4>';
 html+='<div class="allegatoAzioni">';
 html+='<button class="btnApri" onclick="apriAllegatoD('+allegato.id+')">Apri</button>';
 html+='<button onclick="chiediPeriodoControllo(\'D\','+allegato.id+',\'WORD\')">Word</button>';
-html+='<button onclick="chiediPeriodoControllo(\'D\','+allegato.id+',\'PDF\')">PDF</button>';
 html+='<button class="btnElimina" onclick="eliminaAllegatoD('+allegato.id+')">Elimina</button>';
 html+='</div>';
 html+='</div>';
@@ -890,7 +887,6 @@ html+=
 '<div class="allegatoAzioni">'+
 '<button class="btnApri" onclick="apriAllegatoG('+dae.id+')">Apri</button>'+
 '<button onclick="chiediPeriodoControllo(\'G\','+dae.id+',\'WORD\')">Word</button>'+
-'<button onclick="chiediPeriodoControllo(\'G\','+dae.id+',\'PDF\')">PDF</button>'+
 '<button class="btnElimina" onclick="eliminaAllegatoG('+dae.id+')">Elimina</button>'+
 '</div>'+
 '</div>';
@@ -972,7 +968,7 @@ const WORD_TPL={"parts": [{"name": "[Content_Types].xml", "b64": "tZZPa9tAEMXvhX
 </script>
 <script>
 /* =========================================================
-   ESPORTAZIONE WORD / PDF + BACKUP  (nessuna libreria esterna)
+   ESPORTAZIONE WORD + BACKUP  (nessuna libreria esterna)
    Il .docx viene costruito con il layout del modello Eni
    (intestazione, logo, piè di pagina, stili) incorporato in WORD_TPL.
    ========================================================= */
@@ -982,10 +978,14 @@ const WORD_TPL={"parts": [{"name": "[Content_Types].xml", "b64": "tZZPa9tAEMXvhX
    B è preso dal tuo modello; C, D, G sono dedotti da B:
    se hanno una revisione/data diversa, correggi qui. */
 const WORD_TIPI={
-B:{lettera:'B',titolo:'Presidi sanitari in infermeria',header:'Presidi sanitari presenti in infermeria'},
-C:{lettera:'C',titolo:'Pacchetti di medicazione',header:'Pacchetti di medicazione'},
-D:{lettera:'D',titolo:'Cassette di pronto soccorso',header:'Cassette di pronto soccorso'},
-G:{lettera:'G',titolo:'Defibrillatori',header:'Defibrillatori (DAE)'}
+B:{lettera:'B',rev:'2',titolo:'Presidi sanitari in infermeria',header:'Presidi sanitari presenti in infermeria',
+   file:l=>'opi-sg-hse-010-DICS-e&p-All_B_r02_Presidi_Sanitari_Infermeria_'+l+''},
+C:{lettera:'C',rev:'1',titolo:'Pacchetti di medicazione',header:'Pacchetti di medicazione',
+   file:l=>'opi-sg-hse-010-DICS-e&p-All_C_r01_Pacchetto_Medicazione_On_Shore_'+l+''},
+D:{lettera:'D',rev:'3',titolo:'Cassette di pronto soccorso',header:'Cassette di pronto soccorso',
+   file:l=>'opi-sg-hse-010-DICS-e&p-All_D_r03_Cassetta_Soccorso_'+l+''},
+G:{lettera:'G',rev:'1',titolo:'Defibrillatori',header:'Defibrillatori (DAE)',codice:' eni spa_UPS-DICS ',
+   file:l=>'opi-sg-hse-010-eni spa_UPS-DICS-All_G_r01_Registro_Verifiche_Defibrillatori'}
 };
 
 /* ---------- utilità ---------- */
@@ -1033,14 +1033,14 @@ all.forEach(c=>{out.set(c,p);p+=c.length;});
 return out;
 }
 
-/* ---------- modello dati dell'allegato (usato da Word e PDF) ---------- */
+/* ---------- modello dati dell'allegato (usato da Word) ---------- */
 function wModello(tipo,d,mese,anno){
 const T=WORD_TIPI[tipo];
 const base={tipo:tipo,T:T,sito:d.luogo||'',periodo:(mese+' '+anno).trim(),nota:''};
 if(tipo==='G'){
 base.tabelle=[
 {cols:[['Defibrillatore (DAE)',4200],['Dato',6004]],rows:[
-['Sito',d.luogo],['Matricola DAE',d.matricola],
+['Matricola DAE',d.matricola],
 ['Scadenza batteria',wData(d.batteria)],['Scadenza elettrodi',wData(d.elettrodi)]]},
 {cols:[['Registro verifiche - mese',4200],['Data verifica',6004]],
 rows:(d.verifiche||[]).map(v=>[v.mese,wData(v.data)])}
@@ -1087,15 +1087,13 @@ const W_SECT='<w:sectPr><w:headerReference w:type="default" r:id="rId8"/><w:foot
 '<w:cols w:space="708"/><w:docGrid w:linePitch="360"/></w:sectPr>';
 
 function wDocumentXml(M){
-let b='';
+let b=wPar(wRun('Sito: ',{})+wRun(M.sito.toUpperCase(),{b:1}),{after:140});
 M.tabelle.forEach((t,i)=>{b+=wTabella(t)+wPar('',{after:i<M.tabelle.length-1?120:0});});
 b+=wPar('',{});
-if(M.tipo!=='G')b+=wPar(wRun('Sito: ',{})+wRun(M.sito.toUpperCase(),{b:1}),{after:60});
-if(M.periodo)b+=wPar(wRun('Controllo di: ',{})+wRun(M.periodo,{b:1}),{after:120});
 if(M.nota)b+=wPar(wRun(M.nota,{b:1}),{before:60,after:120});
 b+=wPar('',{});
 b+='<w:p><w:pPr><w:spacing w:after="0"/></w:pPr>'+
-'<w:r><w:t xml:space="preserve">Data____________</w:t></w:r><w:r><w:tab/></w:r><w:r><w:tab/></w:r><w:r><w:tab/></w:r>'+
+'<w:r><w:t xml:space="preserve">Data controllo: </w:t></w:r><w:r><w:rPr><w:b/></w:rPr><w:t xml:space="preserve">'+wEsc(M.periodo)+'</w:t></w:r><w:r><w:tab/></w:r><w:r><w:tab/></w:r><w:r><w:tab/></w:r>'+
 '<w:r><w:t xml:space="preserve">Addetto alla gestione _____________________</w:t></w:r></w:p>';
 return '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\r\n'+
 '<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><w:body>'+
@@ -1108,7 +1106,8 @@ const M=wModello(tipo,d,mese,anno);
 const enc=new TextEncoder();
 const L=M.T.lettera;
 const header=WORD_TPL.header.split('Presidi sanitari presenti in infermeria').join(wEsc(M.T.header));
-const footer=WORD_TPL.footer.split('Allegato B_r0').join('Allegato '+L+'_r0');
+let footer=WORD_TPL.footer.replace(/Allegato B_r0(<\/w:t>(?:(?!<w:t[ >]).)*?<w:t[^>]*>)2(<\/w:t>)/g,'Allegato '+L+'_r0$1'+M.T.rev+'$2');
+if(M.T.codice)footer=footer.split(' DICS e&amp;p ').join(wEsc(M.T.codice));
 const dyn={'word/document.xml':wDocumentXml(M),'word/header1.xml':header,'word/footer1.xml':footer};
 const entries=WORD_TPL.parts.map(p=>{
 if(dyn[p.name]!==undefined)return {name:p.name,data:enc.encode(dyn[p.name]),method:0};
@@ -1117,7 +1116,7 @@ return {name:p.name,data:wB64(p.b64),method:8,crc:p.crc,usize:p.usize};
 return wZip(entries);
 }
 
-/* ---------- download / stampa ---------- */
+/* ---------- download ---------- */
 function wScarica(bytes,nome){
 const blob=new Blob([bytes],{type:'application/vnd.openxmlformats-officedocument.wordprocessingml.document'});
 const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=nome;
@@ -1129,8 +1128,9 @@ const mappa={B:DB.infermeria,C:DB.pacchetti,D:DB.cassette,G:DB.defibrillatori};
 return (mappa[tipo]||[]).find(x=>x.id==id)||null;
 }
 function wNomeFile(tipo,d,mese,anno,ext){
-const pulisci=s=>String(s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^A-Za-z0-9]+/g,'_').replace(/^_+|_+$/g,'');
-return ['Allegato',tipo,pulisci(d.luogo),pulisci(mese),pulisci(anno)].filter(Boolean).join('_')+'.'+ext;
+const T=WORD_TIPI[tipo];
+const luogo=String(d.luogo||'').replace(/[\\\/:*?"<>|]+/g,' ').replace(/\s+/g,' ').trim();
+return T.file(luogo)+'.'+ext;
 }
 function esportaWord(tipo,id,mese,anno){
 const dati=wTrovaDati(tipo,id);
@@ -1139,31 +1139,6 @@ try{
 wScarica(wBuildDocx(tipo,dati,mese,anno),wNomeFile(tipo,dati,mese,anno,'docx'));
 }catch(err){console.error(err);alert('Errore nella creazione del file Word: '+err.message);}
 }
-function esportaPdf(tipo,id,mese,anno){
-const dati=wTrovaDati(tipo,id);
-if(!dati){alert('Allegato non trovato');return;}
-const M=wModello(tipo,dati,mese,anno);
-let h='<!DOCTYPE html><html lang="it"><head><meta charset="UTF-8"><title>'+wEsc(wNomeFile(tipo,dati,mese,anno,'pdf').replace(/\.pdf$/,''))+'</title><style>'+
-'@page{size:A4;margin:14mm}body{font-family:Verdana,Arial,sans-serif;font-size:10pt;color:#000}'+
-'h1{font-size:12pt;text-align:center;margin:0 0 2mm}h2{font-size:10pt;text-align:center;margin:0 0 6mm;font-weight:normal}'+
-'table{width:100%;border-collapse:collapse;margin-bottom:5mm}th{background:#808080;color:#fff;padding:3mm 2mm;border:1px solid #a6a6a6;font-size:9pt}'+
-'td{border:1px solid #a6a6a6;padding:1.5mm 2mm;text-align:center;font-size:9pt}td:first-child{text-align:left;background:#d9d9d9}tr{page-break-inside:avoid}'+
-'.foot{margin-top:8mm;display:flex;justify-content:space-between}.small{font-size:7pt;color:#444;margin-top:10mm}</style></head><body>'+
-'<h1>PRESIDI SANITARI NEI LUOGHI DI LAVORO ONSHORE di DICS</h1><h2>Allegato '+M.T.lettera+' - '+wEsc(M.T.header)+'</h2>';
-M.tabelle.forEach(t=>{
-h+='<table><tr>'+t.cols.map(c=>'<th style="width:'+Math.round(c[1]/102.04)+'%">'+wEsc(c[0])+'</th>').join('')+'</tr>'+
-t.rows.map(r=>'<tr>'+r.map(v=>'<td>'+wEsc(v)+'</td>').join('')+'</tr>').join('')+'</table>';
-});
-if(M.tipo!=='G')h+='<p>Sito: <b>'+wEsc(M.sito.toUpperCase())+'</b></p>';
-h+='<p>Controllo di: <b>'+wEsc(M.periodo)+'</b></p>';
-if(M.nota)h+='<p><b>'+wEsc(M.nota)+'</b></p>';
-h+='<div class="foot"><span>Data ______________</span><span>Addetto alla gestione ______________________</span></div>'+
-'<div class="small">Allegato '+M.T.lettera+' - opi sg hse 010 DICS e&amp;p</div></body></html>';
-const w=window.open('','_blank');
-if(!w){alert('Il browser ha bloccato la finestra: consenti i popup per questo sito.');return;}
-w.document.open();w.document.write(h);w.document.close();
-w.focus();setTimeout(()=>w.print(),400);
-}
 function chiediPeriodoControllo(tipo,id,formato){
 const mesi=['Gennaio','Febbraio','Marzo','Aprile','Maggio','Giugno','Luglio','Agosto','Settembre','Ottobre','Novembre','Dicembre'];
 const oggi=new Date();
@@ -1171,8 +1146,7 @@ const mese=prompt('Mese del controllo (es. Ottobre)',mesi[oggi.getMonth()]);
 if(!mese)return;
 const anno=prompt('Anno del controllo (es. 2026)',String(oggi.getFullYear()));
 if(!anno)return;
-if(formato==='WORD')esportaWord(tipo,id,mese.trim(),anno.trim());
-else esportaPdf(tipo,id,mese.trim(),anno.trim());
+esportaWord(tipo,id,mese.trim(),anno.trim());
 }
 
 /* ---------- backup / ripristino ---------- */
