@@ -27,6 +27,26 @@
         #search-input { width: 100%; padding: 10px; margin-bottom: 20px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; font-size: 1em; }
         #lavorazioni-list { list-style: none; padding: 0; }
         #lavorazioni-list li { margin-bottom: 10px; }
+        /* ===== CASETTA HOME RESPONSIVE (solo grafica) ===== */
+        body > div[onclick="goExternalHome()"] svg { display:block; max-width:none; }
+        /* Laptop e schermi medi: la casetta esce dal posizionamento assoluto per non coprire il titolo */
+        @media (max-width:1440px) {
+            body > div[onclick="goExternalHome()"] { position:static !important; display:inline-block; margin:10px 0 0 15px; }
+            body > div[onclick="goExternalHome()"] svg { width:64px; height:64px; }
+            .container { margin-top:5px; }
+        }
+        /* Tablet e smartphone */
+        @media (max-width:800px) {
+            body > div[onclick="goExternalHome()"] { margin:8px 0 0 12px; padding:4px; }
+            body > div[onclick="goExternalHome()"] svg { width:48px; height:48px; }
+            .container { width:100%; margin:0 auto; padding:14px 12px 50px; box-sizing:border-box; }
+            h1 { font-size:1.5em; }
+            .footer { background:rgba(255,255,255,.9); padding:3px 8px; border-radius:6px; font-size:11px; z-index:50; pointer-events:none; }
+        }
+        @media (max-width:420px) {
+            body > div[onclick="goExternalHome()"] svg { width:42px; height:42px; }
+            h1 { font-size:1.3em; }
+        }
     </style>
 </head>
 <body>
