@@ -2,6 +2,7 @@
 <html lang="it">
 <head>
 <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Gestione Mezzi</title>
 
 <style>
@@ -79,6 +80,35 @@ td.print-black .print-date {color:black !important;}
 .blink {animation:none !important;}
 }
 
+/* ===== RESPONSIVE (solo grafica) ===== */
+@media screen {
+html{-webkit-text-size-adjust:100%;}
+img,svg{max-width:100%;}
+}
+@media screen and (max-width:1100px) {
+  .footer{background:rgba(255,255,255,.92);padding:3px 8px;border-radius:6px;z-index:50;pointer-events:none;}
+  body{padding-bottom:40px;}
+  #ditte{grid-template-columns:repeat(2,1fr);}
+  /* tabella + colonna azioni scorrono insieme in orizzontale */
+  #azienda > div[style*="display:flex"]{overflow-x:auto;-webkit-overflow-scrolling:touch;}
+  #tabella{min-width:900px;width:auto;}
+  #azioni{flex:0 0 auto;}
+}
+@media screen and (max-width:700px) {
+  header{padding:12px 8px;}
+  header h2{font-size:18px;margin:0;}
+  .homeIcon svg{width:40px;height:40px;}
+  #boxScadenze{grid-template-columns:1fr;}
+  #ditte{grid-template-columns:1fr;}
+  button{min-height:42px;padding:10px 14px;}
+  #ditte button{min-height:36px;padding:6px 10px;}
+  input[type="text"],select{font-size:16px;}
+  .top-bar{flex-wrap:wrap;}
+  .left-box{flex-wrap:wrap;}
+  .logo{max-height:50px;}
+  #azienda h2{font-size:20px;}
+  td,th{font-size:13px;}
+}
 </style>
 </head>
 <body>
