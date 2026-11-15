@@ -58,6 +58,7 @@ a.btn{color:var(--tx);text-decoration:none}
 ::placeholder{color:rgba(255,255,255,.65)}
 dialog{background:#0e4d6b;color:#fff;border:1px solid rgba(255,255,255,.22)}
 footer{color:#fff;opacity:.8}
+.seg{display:flex;gap:6px;margin-bottom:12px;background:rgba(255,255,255,.12);border:1px solid var(--bd);border-radius:14px;padding:4px}.seg button{flex:1;border:0;background:transparent;color:#fff;padding:10px 6px;border-radius:10px;font-weight:600;cursor:pointer}.seg button.on{background:#fff;color:#0d4a68}.tag.g{background:rgba(255,255,255,.92);color:#0d4a68;border-color:transparent}
 </style>
 </head>
 <body>
@@ -67,6 +68,7 @@ footer{color:#fff;opacity:.8}
 <div><button class="btn" id="bk">Backup</button> <button class="btn p" id="add">+ Nuova scheda</button></div>
 </header>
 <div class="stats"><div class="stat"><b id="n1">0</b><span>Schede totali</span></div><div class="stat w"><b id="n2">0</b><span>Da ricontrollare</span></div></div>
+<div class="seg" id="seg"><button data-g="all" class="on">Tutte</button><button data-g="eni">Eni</button><button data-g="ctr">Contrattista</button></div>
 <div class="tools">
 <input id="q" type="search" placeholder="Cerca sostanza, fabbricante, luogo…">
 <select id="f"><option value="all">Tutte</option><option value="warn">Da ricontrollare</option><option value="ok">Aggiornate</option></select>
@@ -80,7 +82,7 @@ footer{color:#fff;opacity:.8}
 
 <dialog id="dlg"><form method="dialog" id="frm" onsubmit="return false">
 <h2 id="dt" style="margin:0 0 4px">Nuova scheda</h2>
-<label>Nome sostanza *</label><input id="fn" required>
+<label>Nome sostanza *</label><input id="fn" required><label>Appartenenza *</label><select id="fg"><option value="eni">Eni</option><option value="ctr">Contrattista</option></select>
 <div class="two"><div><label>Versione / revisione</label><input id="fv" placeholder="es. Rev. 5"></div><div><label>Data della scheda *</label><input id="fd" type="date" required></div></div>
 <label>Utilizzato per</label><input id="fu">
 <label>Dove si trova</label><input id="fp">
@@ -110,21 +112,21 @@ function ageTxt(d){var a=age(d);if(a<1){var m=Math.max(0,Math.floor(a*12));retur
 function url(u){return /^https?:\/\//i.test(u)?u:'https://'+u}
 function render(){
 var q=$('q').value.toLowerCase(),f=$('f').value,o=$('o').value;
-var l=data.filter(function(s){var t=[s.name,s.rev,s.use,s.place,s.maker].join(' ').toLowerCase();return t.indexOf(q)>-1&&(f==='all'||(f==='warn')===isWarn(s))});
+var l=data.filter(function(s){var t=[s.name,s.rev,s.use,s.place,s.maker].join(' ').toLowerCase();return t.indexOf(q)>-1&&(curG==='all'||s.grp===curG)&&(f==='all'||(f==='warn')===isWarn(s))});
 l.sort(function(a,b){if(o==='date')return (a.date||'').localeCompare(b.date||'');var k=o==='place'?'place':'name';return (a[k]||'').localeCompare(b[k]||'','it')});
-$('n1').textContent=data.length;$('n2').textContent=data.filter(isWarn).length;
+var gd=data.filter(function(s){return curG==='all'||s.grp===curG});$('n1').textContent=gd.length;$('n2').textContent=gd.filter(isWarn).length;var cn={all:data.length,eni:0,ctr:0};data.forEach(function(s){if(cn[s.grp]!=null)cn[s.grp]++});Array.prototype.forEach.call($('seg').children,function(b){var g=b.dataset.g;b.className=g===curG?'on':'';b.textContent={all:'Tutte',eni:'Eni',ctr:'Contrattista'}[g]+' ('+cn[g]+')'});
 $('list').innerHTML=l.length?l.map(function(s){var w=isWarn(s);
 var link=s.web?'<a class="btn s" target="_blank" rel="noopener" href="'+esc(url(s.web))+'">Apri sito</a>':'<a class="btn s" target="_blank" rel="noopener" href="https://www.google.com/search?q='+encodeURIComponent(s.name+' '+(s.maker||'')+' scheda di sicurezza SDS')+'">Cerca online</a>';
-return '<div class="card'+(w?' warn':'')+'"><h3>'+esc(s.name)+'</h3><div class="tags"><span class="tag">'+esc(s.rev||'Rev. n/d')+'</span><span class="tag '+(w?'wa':'ok')+'">'+fmt(s.date)+' · '+ageTxt(s.date)+'</span></div>'
+return '<div class="card'+(w?' warn':'')+'"><h3>'+esc(s.name)+'</h3><div class="tags">'+(s.grp?'<span class="tag g">'+(s.grp==='ctr'?'Contrattista':'Eni')+'</span>':'')+'<span class="tag">'+esc(s.rev||'Rev. n/d')+'</span><span class="tag '+(w?'wa':'ok')+'">'+fmt(s.date)+' · '+ageTxt(s.date)+'</span></div>'
 +(w?'<div class="row" style="color:var(--wa)">⚠ Controlla se è uscita una nuova versione</div>':'')
 +'<div class="row"><i>Utilizzato per</i>'+esc(s.use||'—')+'</div><div class="row"><i>Dove si trova</i>'+esc(s.place||'—')+'</div><div class="row"><i>Fabbricante</i>'+esc(s.maker||'—')+'</div>'
 +'<div class="acts">'+(s.pdf?'<a class="btn s p" target="_blank" rel="noopener" href="/_blob/'+esc(s.pdf.id)+'">📄 Apri PDF</a>':'')+link+'<button class="btn s" data-e="'+s.id+'">Modifica</button><button class="btn s d" data-x="'+s.id+'">Elimina</button></div></div>'}).join(''):'<div class="empty">Nessuna scheda. Premi “+ Nuova scheda” per iniziare.</div>'}
 function openForm(id){editId=id;var s=data.filter(function(x){return x.id===id})[0]||{};
 $('dt').textContent=id?'Modifica scheda':'Nuova scheda';
-$('fn').value=s.name||'';$('fv').value=s.rev||'';$('fd').value=s.date||new Date().toISOString().slice(0,10);$('fu').value=s.use||'';$('fp').value=s.place||'';$('fm').value=s.maker||'';$('fw').value=s.web||'';pdfCur=s.pdf||null;$('fpdf').value='';updPdf();$('dlg').showModal()}
+$('fn').value=s.name||'';$('fg').value=s.grp||(curG==='ctr'?'ctr':'eni');$('fv').value=s.rev||'';$('fd').value=s.date||new Date().toISOString().slice(0,10);$('fu').value=s.use||'';$('fp').value=s.place||'';$('fm').value=s.maker||'';$('fw').value=s.web||'';pdfCur=s.pdf||null;$('fpdf').value='';updPdf();$('dlg').showModal()}
 $('add').onclick=function(){openForm(null)};$('c1').onclick=function(){$('dlg').close()};
 $('s1').onclick=async function(){var n=$('fn').value.trim(),d=$('fd').value;if(!n||!d){$('fn').reportValidity();$('fd').reportValidity();return}
-var r={id:editId||Date.now().toString(36)+Math.random().toString(36).slice(2,6),name:n,rev:$('fv').value.trim(),date:d,use:$('fu').value.trim(),place:$('fp').value.trim(),maker:$('fm').value.trim(),web:$('fw').value.trim(),pdf:pdfCur};
+var r={id:editId||Date.now().toString(36)+Math.random().toString(36).slice(2,6),name:n,grp:$('fg').value,rev:$('fv').value.trim(),date:d,use:$('fu').value.trim(),place:$('fp').value.trim(),maker:$('fm').value.trim(),web:$('fw').value.trim(),pdf:pdfCur};
 var fl=$('fpdf').files&&$('fpdf').files[0];if(fl&&assets){try{$('s1').disabled=true;$('s1').textContent='Carico il PDF…';var u=await assets.upload(fl);r.pdf={id:u.id,name:fl.name}}catch(e){$('pn').textContent='Caricamento non riuscito: '+((e&&e.message)||'riprova')+'. La scheda non è stata salvata.';$('s1').disabled=false;$('s1').textContent='Salva';return}$('s1').disabled=false;$('s1').textContent='Salva'}if(editId)data=data.map(function(x){return x.id===editId?r:x});else data.push(r);save();$('dlg').close();render()};
 $('list').onclick=function(e){var b=e.target.closest('button');if(!b)return;
 if(b.dataset.e)openForm(b.dataset.e);
@@ -139,6 +141,7 @@ $('bdl').onclick=function(){try{var a=document.createElement('a');a.href=URL.cre
 function restore(t){try{var o=JSON.parse(t),l=Array.isArray(o)?o:o.schede;if(!Array.isArray(l))throw 0;data=l.map(function(s){s.id=s.id||Date.now().toString(36)+Math.random().toString(36).slice(2,6);return s});if(o.soglia_anni){yrs=+o.soglia_anni;$('y').value=yrs}save();render();$('bm').textContent='Ripristinate '+data.length+' schede.'}catch(e){$('bm').textContent='Backup non valido.'}}
 $('br').onclick=function(){restore($('bt').value)};
 $('bf').onchange=function(){var f=this.files[0];if(!f)return;var r=new FileReader();r.onload=function(){$('bt').value=r.result;restore(r.result)};r.readAsText(f)};
+var curG='all';$('seg').onclick=function(e){var b=e.target.closest('button');if(!b)return;curG=b.dataset.g;render()};
 var assets=null,pdfCur=null;
 function updPdf(){$('pw').hidden=!assets;$('pn').textContent=pdfCur?'PDF collegato: '+pdfCur.name+' (scegli un file per sostituirlo)':'Nessun PDF caricato (max 20 MB).';$('prm').hidden=!pdfCur}
 $('prm').onclick=function(){pdfCur=null;updPdf()};
