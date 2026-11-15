@@ -995,7 +995,7 @@ let html=
 '<input type="date" value="'+(dae.batteria||'')+'" onchange="salvaDAE('+id+',\'batteria\',this.value)">' +
 '<label>Scadenza Elettrodi</label>'+
 '<input type="date" value="'+(dae.elettrodi||'')+'" onchange="salvaDAE('+id+',\'elettrodi\',this.value)">' +
-'<h3>Registro Verifiche</h3>'+
+'<h3>Registro Verifiche ('+dae.verifiche.length+' / 24)</h3>'+(dae.verifiche.length>=24?'<div class="alertGiallo">⚠ Foglio pieno (24 controlli): esporta il Word. Alla prossima verifica la pagina verrà svuotata e ne inizierà una nuova (i controlli precedenti restano nei fogli precedenti).</div>':'')+
 '<div class="toolbar"><button onclick="aggiungiVerificaDAE('+id+')">➕ Aggiungi verifica</button></div>'+
 '<table>'+
 '<tr>'+
@@ -1020,6 +1020,7 @@ html+=
 });
 html+='</table>'+
 (dae.verifiche.length?'':'<p>Nessuna verifica registrata.</p>')+
+((dae.archivio&&dae.archivio.length)?'<h3>Fogli precedenti</h3>'+dae.archivio.map((a,k)=>'<p>Chiuso il '+String(a.chiuso).split('-').reverse().join('/')+' · '+a.verifiche.length+' controlli <button onclick="esportaArchivioG('+id+','+k+')">Esporta Word</button></p>').join(''):'')+
 '</div>';
 document.getElementById("dettaglioAllegatoG").classList.remove("hidden");
 document.getElementById("dettaglioAllegatoG").innerHTML=html;
@@ -1027,9 +1028,22 @@ document.getElementById("dettaglioAllegatoG").innerHTML=html;
 function aggiungiVerificaDAE(id){
 let dae=DB.defibrillatori.find(x=>x.id==id);
 if(!dae)return;
+if(dae.verifiche.length>=24){
+if(!confirm("Il registro ha raggiunto 24 controlli (foglio pieno).\n\nSe hai già esportato il Word, premi OK: la pagina verrà svuotata e ne inizierà una nuova.\nI controlli attuali restano salvati in 'Fogli precedenti'."))return;
+dae.archivio=dae.archivio||[];
+dae.archivio.push({chiuso:new Date().toISOString().slice(0,10),verifiche:dae.verifiche});
+dae.verifiche=[];
+}
 dae.verifiche.push({data:new Date().toISOString().slice(0,10),batteria:dae.batteria||'',elettrodi:dae.elettrodi||'',ascolto:'OK',firma:''});
 salvaDati();
 apriAllegatoG(id);
+}
+function esportaArchivioG(id,k){
+const dae=DB.defibrillatori.find(x=>x.id==id);
+if(!dae||!dae.archivio||!dae.archivio[k])return;
+const d=Object.assign({},dae,{verifiche:dae.archivio[k].verifiche});
+try{wScarica(wBuildDocx('G',d,'',''),wNomeFile('G',d,'','','docx').replace(/\.docx$/,' - foglio chiuso '+dae.archivio[k].chiuso+'.docx'));}
+catch(err){alert('Errore nella creazione del file Word: '+err.message);}
 }
 function eliminaVerificaDAE(id,indice){
 if(!confirm("Eliminare questa verifica?"))return;
