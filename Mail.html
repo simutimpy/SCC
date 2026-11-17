@@ -84,6 +84,10 @@ label.smallSelect { display:block; }
   <span class="icon">⚠️</span>
   Violazioni
 </button>
+<button onclick="openPage('sospensione')">
+  <span class="icon">⛔</span>
+  Sospensione lavoratore
+</button>
 <button onclick="openPage('migliorare')">
   <span class="icon">🛠</span>
   Migliorare
@@ -487,6 +491,38 @@ label.smallSelect { display:block; }
 </div>
 <div id="ipsa_output"></div>
 </div>
+<div id="sospensione" class="hidden">
+<h2>Sospensione lavoratore</h2>
+<label>Destinatari</label>
+<select id="sw_dittaSelect" class="smallSelect"></select>
+<button onclick="sw_addDitta()" class="btnSmall">Aggiungi</button>
+<div id="sw_dittaContainer"></div>
+<label>Destinatario manuale</label>
+<input id="sw_manual_to" class="smallSelect" placeholder="email manuale">
+<label>CC</label>
+<select id="sw_ccSelect" class="smallSelect"></select>
+<label>CC manuale</label>
+<input id="sw_manual_cc" class="smallSelect" placeholder="email CC manuale">
+<label>Nominativo lavoratore</label>
+<input id="sw_nome" class="smallSelect" placeholder="COGNOME NOME">
+<label>Data della mail di violazione</label>
+<input type="date" id="sw_dataMail" onchange="sw_calcola()" class="dataSmall">
+<label>Sospensione dal</label>
+<input id="sw_dal" readonly class="smallSelect">
+<label>Sospensione al (7 giorni lavorativi)</label>
+<input id="sw_al" readonly class="smallSelect">
+<div class="btnSection">
+  <div class="btnRowSmall">
+    <button onclick="generaSW()">Genera</button>
+    <button onclick="copiaSW()">Copia</button>
+    <button onclick="apriMailSW()">Apri Outlook</button>
+  </div>
+  <div class="btnMain">
+    <button onclick="showHome()">⬅ Indietro</button>
+  </div>
+</div>
+<div id="sw_output"></div>
+</div>
 <div id="spaziConfinati" class="hidden">
   <h2>Spazi Confinati</h2>
 <label>Tipo Mail</label>
@@ -717,6 +753,7 @@ function openPage(id){
  if(id==="malattia"){}
  if(id==="ipsa"){caricaDitteIPSA(); caricaCCIPSA();}
  if(id==="spaziConfinati"){sc_caricaDitte();sc_caricaCC();}
+ if(id==="sospensione"){sw_caricaDitte();sw_caricaCC();sw_init();}
 }
 /*SOPRALLUOGO*/
 let ditteSelezionate = [];
@@ -2030,6 +2067,152 @@ function apriMailSC(){
   let subject = "Attività Spazi Confinati - Casalborsetti";
   window.location.href =
     `mailto:${to}?cc=${cc}&subject=${encodeURIComponent(subject)}`;
+}
+// ===== SOSPENSIONE LAVORATORE =====
+let sw_ditte = [];
+function sw_caricaDitte(){
+  const select = document.getElementById("sw_dittaSelect");
+  select.innerHTML="";
+  mailList.forEach((item,index)=>{
+    let opt=document.createElement("option");
+    opt.value=index;
+    opt.textContent=item.company;
+    select.appendChild(opt);
+  });
+}
+function sw_caricaCC(){
+  let s=document.getElementById("sw_ccSelect");
+  s.innerHTML="";
+  mailList.forEach(e=>{
+    let o=document.createElement("option");
+    o.value=e.emails.join(";");
+    o.textContent=e.company;
+    s.appendChild(o);
+  });
+}
+function sw_addDitta(){
+  let i=document.getElementById("sw_dittaSelect").value;
+  if(i==="") return;
+  sw_ditte.push(mailList[i]);
+  sw_render();
+}
+function sw_render(){
+  let c=document.getElementById("sw_dittaContainer");
+  c.innerHTML="";
+  sw_ditte.forEach((d,i)=>{
+    let t=document.createElement("span");
+    t.className="tag";
+    t.textContent=d.company;
+    t.onclick=()=>{sw_ditte.splice(i,1);sw_render();};
+    c.appendChild(t);
+  });
+}
+function sw_getTo(){
+  let m=document.getElementById("sw_manual_to").value.trim();
+  let e=[];
+  sw_ditte.forEach(d=>e.push(...d.emails));
+  if(m) e.push(m);
+  return e.join(";");
+}
+function sw_getCC(){
+  let s=document.getElementById("sw_ccSelect").value;
+  let m=document.getElementById("sw_manual_cc").value.trim();
+  let e=[];
+  if(s) e.push(s);
+  if(m) e.push(m);
+  return e.join(";");
+}
+function sw_init(){
+  let f=document.getElementById("sw_dataMail");
+  if(!f.value){
+    let o=new Date();
+    f.value=o.getFullYear()+"-"+String(o.getMonth()+1).padStart(2,"0")+"-"+String(o.getDate()).padStart(2,"0");
+  }
+  sw_calcola();
+}
+function sw_fmt(d){
+  return String(d.getDate()).padStart(2,"0")+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+d.getFullYear();
+}
+// 7 giorni lavorativi (lun-ven) a partire dal giorno dopo la mail
+function sw_calcolaDate(){
+  let v=document.getElementById("sw_dataMail").value;
+  if(!v) return null;
+  let p=v.split("-");
+  let d=new Date(+p[0],+p[1]-1,+p[2]);
+  let isLav=x=>x.getDay()!==0 && x.getDay()!==6;
+  d.setDate(d.getDate()+1);
+  while(!isLav(d)) d.setDate(d.getDate()+1);
+  let dal=new Date(d);
+  let n=1;
+  while(n<7){
+    d.setDate(d.getDate()+1);
+    if(isLav(d)) n++;
+  }
+  return {dal:dal, al:new Date(d)};
+}
+function sw_calcola(){
+  let r=sw_calcolaDate();
+  document.getElementById("sw_dal").value = r ? sw_fmt(r.dal) : "";
+  document.getElementById("sw_al").value  = r ? sw_fmt(r.al)  : "";
+}
+function generaSW(){
+  sw_calcola();
+  let dal=document.getElementById("sw_dal").value || "XX-XX-XXXX";
+  let al=document.getElementById("sw_al").value || "XX-XX-XXXX";
+  let nome=document.getElementById("sw_nome").value.trim().toUpperCase() || "XXXXX";
+  let ditte=sw_ditte.map(d=>d.company).join(" / ") || "XXXXX";
+  let testo = `
+<table style="font-family:Montserrat, Arial; font-size:11pt; background:#ffffff; color:#000;">
+
+<tr><td>Spett.le ${ditte},</td></tr>
+
+<tr><td style="padding-top:10px;">
+stante il rapporto di violazione trasmesso con e-mail allegata, si comunica che in ottemperanza a quanto previsto dalla Opi-sg-hse-096-eni-spa-DICS (Applicazione del “Patto per la Sicurezza e l’Ambiente” alle attività in appalto):
+</td></tr>
+
+<tr><td style="padding-top:10px;">
+- al sig. ${nome} sarà sospesa l’autorizzazione all’accesso nei siti Eni per 7 gg. dal ${dal} al ${al} compreso, a fronte della decurtazione dei punti complessivamente a disposizione dello stesso (vedasi sezione dedicata su GST).
+</td></tr>
+
+<tr><td style="padding-top:10px;">
+Il lavoratore potrà riprendere la normale attività, previo colloquio con lo staff sicurezza, effettuando il previsto periodo di “affiancamento”.
+</td></tr>
+
+<tr><td style="padding-top:10px;">
+Per questa esigenza l’impresa dovrà individuare, e segnalare allo staff sicurezza, un “tutor” (preposto esperto e proattivo in materia di sicurezza) cui “affiancare” il preposto sospeso per i giorni che saranno indicati durante il colloquio.
+</td></tr>
+
+<tr><td style="padding-top:10px;">
+I giorni di sospensione devono essere intesi come un periodo per il lavoratore e l’impresa per verificare ed approfondire le cause che hanno determinato la sospensione e consolidare le azioni preventive.
+</td></tr>
+
+<tr><td style="padding-top:10px;">
+Si rimane in attesa della documentazione propedeutica alla chiusura della violazione.
+</td></tr>
+
+<tr><td style="padding-top:10px;">
+A disposizione per eventuali chiarimenti.
+</td></tr>
+
+<tr><td style="padding-top:10px;">
+Cordiali saluti
+</td></tr>
+
+</table>
+`;
+  document.getElementById("sw_output").innerHTML = testo;
+}
+function copiaSW(){
+  if(!document.getElementById("sw_output").innerHTML) generaSW();
+  copiaHTML("sw_output");
+}
+function apriMailSW(){
+  alert("⚠️ ATTENZIONE\n\nAllega la mail della violazione");
+  let to=sw_getTo();
+  let cc=sw_getCC();
+  let nome=document.getElementById("sw_nome").value.trim().toUpperCase();
+  let subject="Sospensione lavoratore"+(nome?" - "+nome:"");
+  window.location.href=`mailto:${to}?cc=${cc}&subject=${encodeURIComponent(subject)}`;
 }
 function goExternalHome(){window.location.href="https://apps.powerapps.com/play/e/default-c16e514b-893e-4a01-9a30-b8fef514a650/a/7d09e9b8-80d7-4289-8177-315e883dc6f0?tenantId=c16e514b-893e-4a01-9a30-b8fef514a650&hint=83de810f-aed1-424e-9508-763f8c564cd6&sourcetime=1791037994763&screen=Home_pc";}
 </script>
