@@ -507,8 +507,6 @@ label.smallSelect { display:block; }
 <input type="date" id="sw_dataMail" onchange="sw_calcola()" oninput="sw_calcola()" class="dataSmall">
 <label>Sospensione dal</label>
 <input id="sw_dal" readonly class="smallSelect">
-<label>Sospensione al (7 giorni lavorativi)</label>
-<input id="sw_al" readonly class="smallSelect">
 <div class="btnSection">
   <div class="btnRowSmall">
     <button onclick="generaSW()">Genera</button>
@@ -2136,12 +2134,12 @@ function sw_calcolaDate(){
 function sw_calcola(){
   let r=sw_calcolaDate();
   document.getElementById("sw_dal").value = r ? sw_fmt(r.dal) : "";
-  document.getElementById("sw_al").value  = r ? sw_fmt(r.al)  : "";
 }
 function generaSW(){
   sw_calcola();
-  let dal=document.getElementById("sw_dal").value || "XX-XX-XXXX";
-  let al=document.getElementById("sw_al").value || "XX-XX-XXXX";
+  let r=sw_calcolaDate();
+  let dal=r ? sw_fmt(r.dal) : "XX-XX-XXXX";
+  let al=r ? sw_fmt(r.al) : "XX-XX-XXXX";
   let nome=document.getElementById("sw_nome").value.trim().toUpperCase() || "XXXXX";
   let ditte=sw_ditte.map(d=>d.company).join(" / ") || "XXXXX";
   let testo = `
