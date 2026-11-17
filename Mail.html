@@ -499,14 +499,12 @@ label.smallSelect { display:block; }
 <div id="sw_dittaContainer"></div>
 <label>Destinatario manuale</label>
 <input id="sw_manual_to" class="smallSelect" placeholder="email manuale">
-<label>CC</label>
-<select id="sw_ccSelect" class="smallSelect"></select>
 <label>CC manuale</label>
 <input id="sw_manual_cc" class="smallSelect" placeholder="email CC manuale">
 <label>Nominativo lavoratore</label>
 <input id="sw_nome" class="smallSelect" placeholder="COGNOME NOME">
 <label>Data della mail di violazione</label>
-<input type="date" id="sw_dataMail" onchange="sw_calcola()" class="dataSmall">
+<input type="date" id="sw_dataMail" onchange="sw_calcola()" oninput="sw_calcola()" class="dataSmall">
 <label>Sospensione dal</label>
 <input id="sw_dal" readonly class="smallSelect">
 <label>Sospensione al (7 giorni lavorativi)</label>
@@ -753,7 +751,7 @@ function openPage(id){
  if(id==="malattia"){}
  if(id==="ipsa"){caricaDitteIPSA(); caricaCCIPSA();}
  if(id==="spaziConfinati"){sc_caricaDitte();sc_caricaCC();}
- if(id==="sospensione"){sw_caricaDitte();sw_caricaCC();sw_init();}
+ if(id==="sospensione"){sw_caricaDitte();sw_init();}
 }
 /*SOPRALLUOGO*/
 let ditteSelezionate = [];
@@ -2080,16 +2078,6 @@ function sw_caricaDitte(){
     select.appendChild(opt);
   });
 }
-function sw_caricaCC(){
-  let s=document.getElementById("sw_ccSelect");
-  s.innerHTML="";
-  mailList.forEach(e=>{
-    let o=document.createElement("option");
-    o.value=e.emails.join(";");
-    o.textContent=e.company;
-    s.appendChild(o);
-  });
-}
 function sw_addDitta(){
   let i=document.getElementById("sw_dittaSelect").value;
   if(i==="") return;
@@ -2115,12 +2103,7 @@ function sw_getTo(){
   return e.join(";");
 }
 function sw_getCC(){
-  let s=document.getElementById("sw_ccSelect").value;
-  let m=document.getElementById("sw_manual_cc").value.trim();
-  let e=[];
-  if(s) e.push(s);
-  if(m) e.push(m);
-  return e.join(";");
+  return document.getElementById("sw_manual_cc").value.trim();
 }
 function sw_init(){
   let f=document.getElementById("sw_dataMail");
