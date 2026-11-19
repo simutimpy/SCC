@@ -9,26 +9,32 @@ body {
 background-size:cover;margin:0;padding:15px;}
 .homeIcon{cursor:pointer;color:white;display:inline-flex;align-items:center;justify-content:center;}
 .homeIcon svg{fill:white !important;}
+#areaStampa{display:none;font-family:Arial,Helvetica,sans-serif;color:#000;background:#fff;}
+.st-pag{break-after:page;page-break-after:always;}
+.st-pag:last-child{break-after:auto;page-break-after:auto;}
+.st-mese{width:100%;border-collapse:collapse;table-layout:fixed;margin:0 0 3.5mm 0;break-inside:avoid;page-break-inside:avoid;}
+.st-mese td{border:0.3mm solid #000;text-align:center;padding:0;height:6.2mm;font-size:9pt;font-weight:bold;overflow:hidden;white-space:nowrap;background:#fff;}
+.st-mese tr.st-hd td{height:8mm;font-size:8pt;line-height:1.05;background:#e8e8e8;}
+.st-mese td.st-mm{text-align:left;padding-left:1.5mm;font-size:8pt;background:#cfd8dc;}
+.st-mese td.st-nome{text-align:left;padding-left:1.5mm;font-size:8.5pt;}
+.st-mese td.st-vuoto{border:none;background:none;}
+.st-mese tr.st-hd td.rosso{background:red;color:#fff;}
+.st-mese tr.st-hd td.st-vuoto{background:none;}
+.st-gs{font-size:5.5pt;font-weight:normal;}
+.st-mese td.t{background:#4fc3f7;}
+.st-mese td.r{background:#66bb6a;}
+.st-mese td.v{background:#ffee58;}
+.st-mese td.f{background:#ff9800;}
+.st-mese td.m,.st-mese td.g{background:#f06292;}
+.st-mese td.s{background:#2196f3;color:#fff;}
+.st-mese td.rosso{background:red;color:#fff;}
 @media print{
-body{-webkit-print-color-adjust:exact;print-color-adjust:exact;margin:0;}
-@page{size:landscape;margin:10mm;}
-#header{display:none;}
-.titolo{color:white;display:none;}
-button{display:none;}
-.footer{display:none;}
-#contenuto{display:block;}
-.mese{width:100%;height:23vh;page-break-inside:avoid;margin-bottom:10px;}
-.giorno{width:45px;height:45px;}
-.num{font-size:9px;}
-.turno{font-size:13px;font-weight:bold;}
-.t{background-color:#4fc3f7 !important;}
-.r{background-color:#66bb6a !important;}
-.v{background-color:#ffee58 !important;}
-.f{background-color:#ff9800 !important;}
-.m{background-color:#f06292 !important;}
-.g{background-color:#f06292 !important;}
-.s{background-color:#2196f3 !important;color:white !important;}
-.rosso{background-color:red !important;color:white !important;}}
+@page{size:A4 landscape;margin:8mm;}
+html,body{background:none !important;background-image:none !important;margin:0 !important;padding:0 !important;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+body > *:not(#areaStampa){display:none !important;}
+#areaStampa{display:block !important;}
+#areaStampa *{-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+}
 button{padding:8px 15px;margin:5px;border-radius:8px;cursor:pointer;}
 .sezione{display:none;}
 .attiva{display:block;}
@@ -101,6 +107,7 @@ hr{width:60%;margin:10px auto;}
 </div>
 <!-- FOOTER -->
 <div class="footer">BY Simone Lacognata</div>
+<div id="areaStampa"></div>
 <!-- HOME -->
 <div id="home" class="sezione attiva">
 <div class="bottoni-centro">
@@ -109,6 +116,10 @@ hr{width:60%;margin:10px auto;}
     <button onclick="esportaBackup()">💾 Crea Backup</button><input type="file"id="fileBackup"accept=".json"style="display:none" onchange="importaBackup(event)">
     <button onclick="document.getElementById('fileBackup').click()">📂 Ripristina Backup</button>
     <button onclick="archiviaENuovoAnno()">📦 Archivia anno e crea il nuovo</button>
+</div>
+<div id="selettoreAnno" class="centro" style="display:none;margin-bottom:10px;">
+    <label style="color:white;font-weight:bold;">📅 Anno visualizzato: </label>
+    <select id="selAnno" onchange="cambiaAnnoVisto(this.value)" style="padding:5px 10px;border-radius:8px;"></select>
 </div>
 <div id="contenuto"></div>
 </div>
@@ -255,11 +266,135 @@ function normalizzaData(d){
     }
     return d;
 }
+// ===== ANNI ARCHIVIATI (consultazione) =====
+let annoVisto = null; // null = anno corrente
+function anniArchiviati(){
+    let anni = [];
+    for(let i=0;i<localStorage.length;i++){
+        let m = /^archivio_(\d{4})$/.exec(localStorage.key(i));
+        if(m) anni.push(parseInt(m[1]));
+    }
+    return anni.sort((a,b)=>b-a);
+}
+function sorgenteVista(){
+    if(annoVisto){
+        try{
+            let a = JSON.parse(localStorage.getItem("archivio_" + annoVisto));
+            if(a && a.turni) return {turni:a.turni, nomi:a.nomi||[], ferie:a.ferieMalattie||[]};
+        }catch(e){}
+        annoVisto = null;
+    }
+    return {
+        turni: JSON.parse(localStorage.getItem("turni")),
+        nomi: JSON.parse(localStorage.getItem("nomi")) || [],
+        ferie: JSON.parse(localStorage.getItem("ferieMalattie")) || []
+    };
+}
+function aggiornaSelettoreAnno(){
+    let box = document.getElementById("selettoreAnno");
+    let sel = document.getElementById("selAnno");
+    if(!box || !sel) return;
+    let anni = anniArchiviati();
+    if(!anni.length){ box.style.display = "none"; return; }
+    let turni = JSON.parse(localStorage.getItem("turni")) || [];
+    let corr = turni.length ? new Date(turni[0].raw).getFullYear() : "";
+    sel.innerHTML = "";
+    let o = document.createElement("option");
+    o.value = "";
+    o.textContent = "Anno corrente" + (corr ? " (" + corr + ")" : "");
+    sel.appendChild(o);
+    anni.forEach(a=>{
+        let op = document.createElement("option");
+        op.value = a;
+        op.textContent = a + " (archivio)";
+        sel.appendChild(op);
+    });
+    sel.value = annoVisto ? String(annoVisto) : "";
+    box.style.display = "block";
+}
+function cambiaAnnoVisto(v){
+    annoVisto = v ? parseInt(v) : null;
+    carica();
+}
+// ===== STAMPA COMPATTA: solo mesi e persone, 6 mesi per foglio (max 2 fogli) =====
+function htmlStampa(){
+    let src = sorgenteVista();
+    let dati = src.turni;
+    if(!dati || !dati.length) return "";
+    let nomi = src.nomi || [];
+    let ferie = src.ferie || [];
+    let campi = ["p1","p2","p3"];
+    let gs = ["D","L","M","M","G","V","S"];
+    let esc = s => String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+    let mesi = {};
+    dati.forEach(g=>{
+        let d = new Date(g.raw);
+        let k = d.getFullYear()*100 + d.getMonth();
+        (mesi[k] = mesi[k] || []).push({d:d, g:g});
+    });
+    let chiavi = Object.keys(mesi).map(Number).sort((a,b)=>a-b);
+    let colgroup = '<colgroup><col style="width:26mm">' + '<col>'.repeat(31) + '</colgroup>';
+    let blocchi = chiavi.map(k=>{
+        let giorni = mesi[k].sort((a,b)=>a.d-b.d);
+        let anno = Math.floor(k/100), m = k%100;
+        let nomeMese = new Date(anno,m,1).toLocaleString("it",{month:"long"}).toUpperCase();
+        let rosso = x => x.d.getDay()===0 || isFestivo(x.d);
+        let vuoti = '<td class="st-vuoto"></td>'.repeat(31-giorni.length);
+        let hd = '<tr class="st-hd"><td class="st-mm">' + nomeMese + ' ' + anno + '</td>';
+        giorni.forEach(x=>{
+            hd += '<td' + (rosso(x) ? ' class="rosso"' : '') + '><span class="st-gs">' + gs[x.d.getDay()] + '</span><br>' + x.d.getDate() + '</td>';
+        });
+        hd += vuoti + '</tr>';
+        let righe = "";
+        campi.forEach((c,idx)=>{
+            if(!nomi[idx]) return;
+            let r = '<tr><td class="st-nome">' + esc(nomi[idx]) + '</td>';
+            giorni.forEach(x=>{
+                let dataStr = String(x.d.getDate()).padStart(2,"0") + "-" + String(x.d.getMonth()+1).padStart(2,"0") + "-" + x.d.getFullYear();
+                let turno = (x.g[c] || "").toUpperCase();
+                let p = ferie[idx];
+                if(p){
+                    if(p.ferie && p.ferie.includes(dataStr)) turno = "F";
+                    if(p.mal && p.mal.includes(dataStr)) turno = "M";
+                    if(p.str && p.str.includes(dataStr)) turno = "STR";
+                }
+                let cls = "";
+                if(rosso(x)) cls = "rosso";
+                else if(turno === "STR") cls = "s";
+                else if(turno.length === 1 && "TRVFMG".includes(turno)) cls = turno.toLowerCase();
+                r += '<td' + (cls ? ' class="' + cls + '"' : '') + '>' + (turno==="STR" ? "Str" : esc(turno)) + '</td>';
+            });
+            righe += r + vuoti + '</tr>';
+        });
+        return '<table class="st-mese">' + colgroup + hd + righe + '</table>';
+    });
+    let pagine = [];
+    for(let i=0;i<blocchi.length;i+=6){
+        pagine.push('<div class="st-pag">' + blocchi.slice(i,i+6).join("") + '</div>');
+    }
+    return pagine.join("");
+}
+function riempiStampa(){
+    let a = document.getElementById("areaStampa");
+    if(a) a.innerHTML = htmlStampa();
+}
+function svuotaStampa(){
+    let a = document.getElementById("areaStampa");
+    if(a) a.innerHTML = "";
+}
+window.addEventListener("beforeprint", riempiStampa);
+window.addEventListener("afterprint", svuotaStampa);
 function stampa4mesi() {
+    riempiStampa();
+    if(!document.getElementById("areaStampa").innerHTML){
+        alert("Nessun turno da stampare.");
+        return;
+    }
     window.print();
 }
 // NAVIGAZIONE
 function vaiGenera(){
+    annoVisto = null;
     document.getElementById("home").classList.remove("attiva");
     document.getElementById("genera").classList.add("attiva");
 }
@@ -387,12 +522,17 @@ function aggiornaTabellaNomi(){
 }
 // VISUALIZZA
 function carica(){
-    let ferieSalvate = JSON.parse(localStorage.getItem("ferieMalattie")) || [];
-    let dati = JSON.parse(localStorage.getItem("turni"));
-    let nomi = JSON.parse(localStorage.getItem("nomi")) || [];
+    aggiornaSelettoreAnno();
+    let src = sorgenteVista();
+    let ferieSalvate = src.ferie;
+    let dati = src.turni;
+    let nomi = src.nomi;
     if(!dati) return;
     let contenuto = document.getElementById("contenuto");
     contenuto.innerHTML = "";
+    if(annoVisto){
+        contenuto.innerHTML = '<div style="color:white;font-weight:bold;text-align:center;margin:10px 0;">📁 Archivio ' + annoVisto + ' – sola consultazione</div>';
+    }
     let mesi = {};
     dati.forEach(g=>{
         let d = new Date(g.raw);
