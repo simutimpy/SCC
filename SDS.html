@@ -59,6 +59,21 @@ a.btn{color:var(--tx);text-decoration:none}
 dialog{background:#0e4d6b;color:#fff;border:1px solid rgba(255,255,255,.22)}
 footer{color:#fff;opacity:.8}
 .seg{display:flex;gap:6px;margin-bottom:12px;background:rgba(255,255,255,.12);border:1px solid var(--bd);border-radius:14px;padding:4px}.seg button{flex:1;border:0;background:transparent;color:#fff;padding:10px 6px;border-radius:10px;font-weight:600;cursor:pointer}.seg button.on{background:#fff;color:#0d4a68}.tag.g{background:rgba(255,255,255,.92);color:#0d4a68;border-color:transparent}
+.sec{font-size:1.05rem;margin:22px 0 10px;display:flex;align-items:baseline;gap:8px;flex-wrap:wrap}.sec span{font-size:.8rem;font-weight:400;color:var(--mut)}
+.tw{max-height:72vh;overflow:auto;border:1px solid var(--bd);border-radius:14px;background:var(--card);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px)}
+.tb{width:100%;border-collapse:collapse;font-size:.9rem}
+.tb th{position:sticky;top:0;z-index:1;background:#0e4d6b;text-align:left;font-size:.72rem;text-transform:uppercase;letter-spacing:.04em;padding:10px 12px;color:var(--mut);white-space:nowrap;border-bottom:1px solid var(--bd)}
+.tb th.so{cursor:pointer}.tb th.on{color:#fff}
+.tb td{padding:8px 12px;border-bottom:1px solid var(--bd);vertical-align:top}
+.tb tbody tr:nth-child(even) td{background:rgba(255,255,255,.05)}
+.tb tbody tr:hover td{background:rgba(255,255,255,.13)}
+.tb .sub{display:block;color:var(--mut);font-size:.75rem;margin-top:2px}
+.tb .m-only{display:none}.tb .c-d{white-space:nowrap}
+.tb .c-ac{white-space:nowrap;text-align:right}
+.ib{border:1px solid var(--bd);background:rgba(255,255,255,.12);color:var(--tx);border-radius:9px;padding:4px 8px;margin-left:4px;cursor:pointer;text-decoration:none;font-size:.95rem;line-height:1.3;display:inline-block}
+.ib:hover{background:rgba(255,255,255,.26)}.ib.d{color:var(--dn)}
+@media(max-width:820px){.tb .c-use,.tb .c-mk{display:none}}
+@media(max-width:620px){.tb .c-pl{display:none}.tb .m-only{display:block}.tb td{padding:8px}.tb th{padding:8px}}
 </style>
 </head>
 <body>
@@ -72,10 +87,10 @@ footer{color:#fff;opacity:.8}
 <div class="tools">
 <input id="q" type="search" placeholder="Cerca sostanza, fabbricante, luogo…">
 <select id="f"><option value="all">Tutte</option><option value="warn">Da ricontrollare</option><option value="ok">Aggiornate</option></select>
-<select id="o"><option value="name">Ordina: nome</option><option value="date">Ordina: data (vecchie prima)</option><option value="place">Ordina: ubicazione</option></select>
+<select id="o"><option value="name">Elenco aggiornate: ordina per nome</option><option value="date">Elenco aggiornate: per data (vecchie prima)</option><option value="place">Elenco aggiornate: per ubicazione</option></select>
 <select id="y"><option value="2">Avviso dopo 2 anni</option><option value="3">Avviso dopo 3 anni</option></select>
 </div>
-<div class="grid" id="list"></div>
+<div id="list"></div>
 </div>
 
 <footer>By Simone Lacognata</footer>
@@ -101,8 +116,8 @@ footer{color:#fff;opacity:.8}
 </dialog>
 
 <script>
-var KEY='sds-v1',data=[],yrs=2,editId=null,$=function(i){return document.getElementById(i)};
-function load(){try{var r=localStorage.getItem(KEY);if(r){var o=JSON.parse(r);data=o.d||[];yrs=o.y||2}}catch(e){}}
+var KEY='sds-v1',data=[],yrs=3,editId=null,$=function(i){return document.getElementById(i)};
+function load(){try{var r=localStorage.getItem(KEY);if(r){var o=JSON.parse(r);data=o.d||[];yrs=o.y||3}}catch(e){}}
 function save(){try{localStorage.setItem(KEY,JSON.stringify({d:data,y:yrs}))}catch(e){}}
 function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
 function age(d){return (Date.now()-new Date(d+'T00:00:00').getTime())/31557600000}
@@ -110,17 +125,32 @@ function isWarn(s){return !s.date||age(s.date)>=yrs}
 function fmt(d){if(!d)return'—';var p=d.split('-');return p[2]+'/'+p[1]+'/'+p[0]}
 function ageTxt(d){var a=age(d);if(a<1){var m=Math.max(0,Math.floor(a*12));return m+(m===1?' mese':' mesi')}var y=Math.floor(a);return y+(y===1?' anno':' anni')}
 function url(u){return /^https?:\/\//i.test(u)?u:'https://'+u}
-function render(){
-var q=$('q').value.toLowerCase(),f=$('f').value,o=$('o').value;
-var l=data.filter(function(s){var t=[s.name,s.rev,s.use,s.place,s.maker].join(' ').toLowerCase();return t.indexOf(q)>-1&&(curG==='all'||s.grp===curG)&&(f==='all'||(f==='warn')===isWarn(s))});
-l.sort(function(a,b){if(o==='date')return (a.date||'').localeCompare(b.date||'');var k=o==='place'?'place':'name';return (a[k]||'').localeCompare(b[k]||'','it')});
-var gd=data.filter(function(s){return curG==='all'||s.grp===curG});$('n1').textContent=gd.length;$('n2').textContent=gd.filter(isWarn).length;var cn={all:data.length,eni:0,ctr:0};data.forEach(function(s){if(cn[s.grp]!=null)cn[s.grp]++});Array.prototype.forEach.call($('seg').children,function(b){var g=b.dataset.g;b.className=g===curG?'on':'';b.textContent={all:'Tutte',eni:'Eni',ctr:'Contrattista'}[g]+' ('+cn[g]+')'});
-$('list').innerHTML=l.length?l.map(function(s){var w=isWarn(s);
+function cardH(s){var w=isWarn(s);
 var link=s.web?'<a class="btn s" target="_blank" rel="noopener" href="'+esc(url(s.web))+'">Apri sito</a>':'<a class="btn s" target="_blank" rel="noopener" href="https://www.google.com/search?q='+encodeURIComponent(s.name+' '+(s.maker||'')+' scheda di sicurezza SDS')+'">Cerca online</a>';
 return '<div class="card'+(w?' warn':'')+'"><h3>'+esc(s.name)+'</h3><div class="tags">'+(s.grp?'<span class="tag g">'+(s.grp==='ctr'?'Contrattista':'Eni')+'</span>':'')+'<span class="tag">'+esc(s.rev||'Rev. n/d')+'</span><span class="tag '+(w?'wa':'ok')+'">'+fmt(s.date)+' · '+ageTxt(s.date)+'</span></div>'
 +(w?'<div class="row" style="color:var(--wa)">⚠ Controlla se è uscita una nuova versione</div>':'')
 +'<div class="row"><i>Utilizzato per</i>'+esc(s.use||'—')+'</div><div class="row"><i>Dove si trova</i>'+esc(s.place||'—')+'</div><div class="row"><i>Fabbricante</i>'+esc(s.maker||'—')+'</div>'
-+'<div class="acts">'+(s.pdf?'<a class="btn s p" target="_blank" rel="noopener" href="/_blob/'+esc(s.pdf.id)+'">📄 Apri PDF</a>':'')+link+'<button class="btn s" data-e="'+s.id+'">Modifica</button><button class="btn s d" data-x="'+s.id+'">Elimina</button></div></div>'}).join(''):'<div class="empty">Nessuna scheda. Premi “+ Nuova scheda” per iniziare.</div>'}
++'<div class="acts">'+(s.pdf?'<a class="btn s p" target="_blank" rel="noopener" href="/_blob/'+esc(s.pdf.id)+'">📄 Apri PDF</a>':'')+link+'<button class="btn s" data-e="'+s.id+'">Modifica</button><button class="btn s d" data-x="'+s.id+'">Elimina</button></div></div>'}
+function rowH(s){
+var link=s.web?'<a class="ib" target="_blank" rel="noopener" href="'+esc(url(s.web))+'" title="Apri sito">🌐</a>':'<a class="ib" target="_blank" rel="noopener" href="https://www.google.com/search?q='+encodeURIComponent(s.name+' '+(s.maker||'')+' scheda di sicurezza SDS')+'" title="Cerca online">🔎</a>';
+var pdf=s.pdf?'<a class="ib" target="_blank" rel="noopener" href="/_blob/'+esc(s.pdf.id)+'" title="Apri PDF">📄</a>':'';
+return '<tr><td class="c-n"><b>'+esc(s.name)+'</b><small class="sub">'+(s.grp&&curG==='all'?'<span class="tag g">'+(s.grp==='ctr'?'Contrattista':'Eni')+'</span> ':'')+esc(s.rev||'Rev. n/d')+'</small><small class="sub m-only">📍 '+esc(s.place||'—')+'</small></td>'
++'<td class="c-d">'+fmt(s.date)+'<small class="sub">'+ageTxt(s.date)+'</small></td><td class="c-use">'+esc(s.use||'—')+'</td><td class="c-pl">'+esc(s.place||'—')+'</td><td class="c-mk">'+esc(s.maker||'—')+'</td>'
++'<td class="c-ac">'+pdf+link+'<button class="ib" data-e="'+s.id+'" title="Modifica">✏️</button><button class="ib d" data-x="'+s.id+'" title="Elimina">🗑</button></td></tr>'}
+function tableH(l,o){
+function th(k,t,c){return '<th'+(k?' data-o="'+k+'" class="so'+(o===k?' on':'')+(c?' '+c:'')+'"':(c?' class="'+c+'"':''))+'>'+t+(o===k?' ▲':'')+'</th>'}
+return '<div class="tw"><table class="tb"><thead><tr>'+th('name','Sostanza')+th('date','Data / età')+th('','Utilizzato per','c-use')+th('place','Dove si trova','c-pl')+th('','Fabbricante','c-mk')+'<th></th></tr></thead><tbody>'+l.map(rowH).join('')+'</tbody></table></div>'}
+function render(){
+var q=$('q').value.toLowerCase(),f=$('f').value,o=$('o').value;
+var l=data.filter(function(s){var t=[s.name,s.rev,s.use,s.place,s.maker].join(' ').toLowerCase();return t.indexOf(q)>-1&&(curG==='all'||s.grp===curG)&&(f==='all'||(f==='warn')===isWarn(s))});
+var warn=l.filter(isWarn),okl=l.filter(function(s){return !isWarn(s)});
+warn.sort(function(a,b){return (a.date||'').localeCompare(b.date||'')});
+okl.sort(function(a,b){if(o==='date')return (a.date||'').localeCompare(b.date||'');var k=o==='place'?'place':'name';return (a[k]||'').localeCompare(b[k]||'','it')});
+var gd=data.filter(function(s){return curG==='all'||s.grp===curG});$('n1').textContent=gd.length;$('n2').textContent=gd.filter(isWarn).length;var cn={all:data.length,eni:0,ctr:0};data.forEach(function(s){if(cn[s.grp]!=null)cn[s.grp]++});Array.prototype.forEach.call($('seg').children,function(b){var g=b.dataset.g;b.className=g===curG?'on':'';b.textContent={all:'Tutte',eni:'Eni',ctr:'Contrattista'}[g]+' ('+cn[g]+')'});
+var h='';
+if(warn.length)h+='<h2 class="sec">⚠ Da ricontrollare <span>('+warn.length+') · dalla più vecchia alla più recente</span></h2><div class="grid">'+warn.map(cardH).join('')+'</div>';
+if(okl.length)h+='<h2 class="sec">✅ Aggiornate <span>('+okl.length+') · clicca sull’intestazione per ordinare</span></h2>'+tableH(okl,o);
+$('list').innerHTML=h||'<div class="empty">'+(data.length?'Nessuna scheda trovata.':'Nessuna scheda. Premi “+ Nuova scheda” per iniziare.')+'</div>'}
 function openForm(id){editId=id;var s=data.filter(function(x){return x.id===id})[0]||{};
 $('dt').textContent=id?'Modifica scheda':'Nuova scheda';
 $('fn').value=s.name||'';$('fg').value=s.grp||(curG==='ctr'?'ctr':'eni');$('fv').value=s.rev||'';$('fd').value=s.date||new Date().toISOString().slice(0,10);$('fu').value=s.use||'';$('fp').value=s.place||'';$('fm').value=s.maker||'';$('fw').value=s.web||'';pdfCur=s.pdf||null;$('fpdf').value='';updPdf();$('dlg').showModal()}
@@ -128,9 +158,9 @@ $('add').onclick=function(){openForm(null)};$('c1').onclick=function(){$('dlg').
 $('s1').onclick=async function(){var n=$('fn').value.trim(),d=$('fd').value;if(!n||!d){$('fn').reportValidity();$('fd').reportValidity();return}
 var r={id:editId||Date.now().toString(36)+Math.random().toString(36).slice(2,6),name:n,grp:$('fg').value,rev:$('fv').value.trim(),date:d,use:$('fu').value.trim(),place:$('fp').value.trim(),maker:$('fm').value.trim(),web:$('fw').value.trim(),pdf:pdfCur};
 var fl=$('fpdf').files&&$('fpdf').files[0];if(fl&&assets){try{$('s1').disabled=true;$('s1').textContent='Carico il PDF…';var u=await assets.upload(fl);r.pdf={id:u.id,name:fl.name}}catch(e){$('pn').textContent='Caricamento non riuscito: '+((e&&e.message)||'riprova')+'. La scheda non è stata salvata.';$('s1').disabled=false;$('s1').textContent='Salva';return}$('s1').disabled=false;$('s1').textContent='Salva'}if(editId)data=data.map(function(x){return x.id===editId?r:x});else data.push(r);save();$('dlg').close();render()};
-$('list').onclick=function(e){var b=e.target.closest('button');if(!b)return;
+$('list').onclick=function(e){var th=e.target.closest('th[data-o]');if(th){$('o').value=th.dataset.o;render();return}var b=e.target.closest('button');if(!b)return;
 if(b.dataset.e)openForm(b.dataset.e);
-if(b.dataset.x){if(b.dataset.arm){data=data.filter(function(x){return x.id!==b.dataset.x});save();render()}else{b.dataset.arm=1;b.textContent='Confermi?';setTimeout(function(){b.dataset.arm='';b.textContent='Elimina'},3000)}}};
+if(b.dataset.x){if(b.dataset.arm){data=data.filter(function(x){return x.id!==b.dataset.x});save();render()}else{b.dataset.arm=1;b.dataset.t=b.dataset.t||b.textContent;b.textContent='Confermi?';setTimeout(function(){b.dataset.arm='';b.textContent=b.dataset.t},3000)}}};
 ['q','f','o'].forEach(function(i){$(i).oninput=render});
 $('y').onchange=function(){yrs=+$('y').value;save();render()};
 function json(){return JSON.stringify({app:'sds',esportato:new Date().toISOString(),soglia_anni:yrs,schede:data},null,1)}
