@@ -1193,21 +1193,32 @@ return '<w:r><w:rPr><w:rFonts w:ascii="Verdana" w:hAnsi="Verdana" w:cs="Verdana"
 '<w:sz w:val="'+(o.sz||18)+'"/><w:szCs w:val="'+(o.sz||18)+'"/></w:rPr><w:t xml:space="preserve">'+wEsc(t)+'</w:t></w:r>';}
 function wPar(inner,o){o=o||{};
 return '<w:p><w:pPr><w:spacing w:before="'+(o.before||0)+'" w:after="'+(o.after||0)+'" w:line="240" w:lineRule="auto"/>'+
-(o.ind?'<w:ind w:left="'+o.ind+'"/>':'')+(o.jc?'<w:jc w:val="'+o.jc+'"/>':'')+'</w:pPr>'+inner+'</w:p>';}
+(o.ind?'<w:ind w:left="'+o.ind+'"/>':'')+(o.jc?'<w:jc w:val="'+o.jc+'"/>':'')+(o.mk?'<w:rPr><w:sz w:val="'+o.mk+'"/><w:szCs w:val="'+o.mk+'"/></w:rPr>':'')+'</w:pPr>'+inner+'</w:p>';}
 function wCell(t,w,o){o=o||{};
 return '<w:tc><w:tcPr><w:tcW w:w="'+w+'" w:type="dxa"/>'+(o.fill?'<w:shd w:val="clear" w:color="auto" w:fill="'+o.fill+'"/>':'')+'<w:vAlign w:val="center"/></w:tcPr>'+
-wPar(wRun(t,{b:o.b,color:o.color}),{before:o.head?120:60,after:o.head?120:60,jc:o.left?'left':'center',ind:o.left?142:0})+'</w:tc>';}
-function wTabella(t){
+wPar(wRun(t,{b:o.b,color:o.color,sz:o.sz}),{before:o.head?o.hp:o.pad,after:o.head?o.hp:o.pad,jc:o.left?'left':'center',ind:o.left?142:0})+'</w:tc>';}
+/* Densità della tabella: si parte dalla più comoda e si stringe solo se la pagina non basta (1 sola pagina) */
+const W_DENS=[{pad:60,hp:120,hr:354,sz:18},{pad:35,hp:90,hr:300,sz:18},{pad:25,hp:70,hr:280,sz:17},{pad:15,hp:50,hr:260,sz:16},{pad:5,hp:40,hr:240,sz:15}];
+function wRighe(txt,w,sz,rientro){const cw=sz*10*0.6,u=Math.max(1,Math.floor((w-140-(rientro||0))/cw));
+let n=0;String(txt==null?'':txt).split(' ').reduce((riga,p)=>{const x=riga?riga+' '+p:p;if(x.length>u&&riga){n++;return p;}return x;},'');return n+1;}
+function wAltezza(t,dn){const lh=dn.sz*11.6;
+let h=Math.max(701,Math.max.apply(null,t.cols.map(c=>wRighe(c[0],c[1],dn.sz,0)))*lh+2*dn.hp);
+t.rows.forEach(r=>{h+=Math.max(dn.hr,Math.max.apply(null,r.map((v,i)=>wRighe(v,t.cols[i][1],dn.sz,i===0?142:0)))*lh+2*dn.pad);});return h;}
+function wDensita(M){const t=M.tabelle[0];if(!t||M.tabelle.length!==1)return 0;
+const disp=16838-3119-2835,ris=(M.nota?1900:1300)+250;
+for(let i=0;i<W_DENS.length;i++){if(wAltezza(t,W_DENS[i])<=disp-(i?ris-400:ris))return i;}
+return W_DENS.length-1;}
+function wTabella(t,dn){dn=dn||W_DENS[0];
 const tot=t.cols.reduce((a,c)=>a+c[1],0);
 const bd=['top','left','bottom','right','insideH','insideV'].map(k=>'<w:'+k+' w:val="single" w:sz="4" w:space="0" w:color="A6A6A6"/>').join('');
 let x='<w:tbl><w:tblPr><w:tblW w:w="'+tot+'" w:type="dxa"/><w:tblBorders>'+bd+'</w:tblBorders><w:tblLayout w:type="fixed"/>'+
 '<w:tblCellMar><w:left w:w="70" w:type="dxa"/><w:right w:w="70" w:type="dxa"/></w:tblCellMar></w:tblPr><w:tblGrid>'+
 t.cols.map(c=>'<w:gridCol w:w="'+c[1]+'"/>').join('')+'</w:tblGrid>';
 x+='<w:tr><w:trPr><w:cantSplit/><w:trHeight w:val="701"/><w:tblHeader/></w:trPr>'+
-t.cols.map(c=>wCell(c[0],c[1],{fill:'808080',b:1,color:'FFFFFF',head:1})).join('')+'</w:tr>';
+t.cols.map(c=>wCell(c[0],c[1],{fill:'808080',b:1,color:'FFFFFF',head:1,hp:dn.hp,sz:dn.sz})).join('')+'</w:tr>';
 t.rows.forEach(r=>{
-x+='<w:tr><w:trPr><w:cantSplit/><w:trHeight w:val="354"/></w:trPr>'+
-r.map((v,i)=>wCell(v,t.cols[i][1],i===0?{fill:'D9D9D9',left:1}:{})).join('')+'</w:tr>';
+x+='<w:tr><w:trPr><w:cantSplit/><w:trHeight w:val="'+dn.hr+'"/></w:trPr>'+
+r.map((v,i)=>wCell(v,t.cols[i][1],i===0?{fill:'D9D9D9',left:1,pad:dn.pad,sz:dn.sz}:{pad:dn.pad,sz:dn.sz})).join('')+'</w:tr>';
 });
 return x+'</w:tbl>';
 }
@@ -1217,10 +1228,11 @@ const W_SECT='<w:sectPr><w:headerReference w:type="default" r:id="rId8"/><w:foot
 
 function wDocumentXml(M){
 let b=wPar(wRun('Sito: ',{})+wRun(M.sito.toUpperCase(),{b:1}),{after:140});
-M.tabelle.forEach((t,i)=>{b+=wTabella(t)+wPar('',{after:i<M.tabelle.length-1?120:0});});
-b+=wPar('',{});
+const di=wDensita(M),dn=W_DENS[di],mk=di?16:0;
+M.tabelle.forEach((t,i)=>{b+=wTabella(t,dn)+wPar('',{after:i<M.tabelle.length-1?120:0,mk:mk});});
+b+=wPar('',{mk:mk});
 if(M.nota)b+=wPar(wRun(M.nota,{b:1}),{before:60,after:120});
-b+=wPar('',{});
+b+=wPar('',{mk:mk});
 b+='<w:p><w:pPr><w:spacing w:after="0"/></w:pPr>'+
 '<w:r><w:t xml:space="preserve">Data controllo: </w:t></w:r><w:r><w:rPr><w:b/></w:rPr><w:t xml:space="preserve">'+wEsc(M.periodo)+'</w:t></w:r><w:r><w:tab/></w:r><w:r><w:tab/></w:r><w:r><w:tab/></w:r>'+
 '<w:r><w:t xml:space="preserve">Addetto alla gestione _____________________</w:t></w:r></w:p>';
