@@ -101,10 +101,15 @@ th,td{border-color:rgba(255,255,255,.3)}
 <div class="dashboardNumber" id="totPresidi">0</div>
 </div>
 <div class="card scaduto">
+<h3>Già scaduti</h3>
+<div class="dashboardNumber" id="tot0">0</div>
+</div>
+<div class="card scadenza">
 <h3>Scadenze entro 30 giorni</h3>
 <div class="dashboardNumber" id="tot30">0</div>
 </div>
 </div>
+<div id="dashScadenze" style="margin-top:20px"></div>
 </div>
 <div id="allegatoBPage" class="hidden">
 <div class="pageTitle">Allegato B - Infermeria</div>
@@ -258,36 +263,87 @@ const json=JSON.parse(dati);
 Object.assign(DB,json);
 }
 }
+function dataLocale(v){
+const m=/^(\d{4})-(\d{2})-(\d{2})/.exec(v||'');
+return m?new Date(+m[1],+m[2]-1,+m[3]):null;
+}
+function giorniDaOggi(v){
+const d=dataLocale(v);
+if(!d)return null;
+const o=new Date();
+const oggi=new Date(o.getFullYear(),o.getMonth(),o.getDate());
+return Math.round((d-oggi)/86400000);
+}
+function elencoScadenzeDashboard(){
+const el=[];
+const gruppi=[
+{k:'B',nome:'Allegato B - Infermeria',lista:DB.infermeria},
+{k:'C',nome:'Allegato C - Pacchetti',lista:DB.pacchetti},
+{k:'D',nome:'Allegato D - Cassette PS',lista:DB.cassette}
+];
+gruppi.forEach(g=>{
+(g.lista||[]).forEach(a=>{
+(a.materiali||[]).forEach(m=>{
+if(m.ok||!m.scadenza)return;
+const gg=giorniDaOggi(m.scadenza);
+if(gg!==null&&gg<=30){
+el.push({tipo:g.k,tipoNome:g.nome,id:a.id,luogo:a.luogo||'',materiale:m.materiale,qta:m.qta,data:m.scadenza,giorni:gg});
+}
+});
+});
+});
+(DB.defibrillatori||[]).forEach(d=>{
+[['batteria','Batteria DAE'],['elettrodi','Elettrodi DAE']].forEach(c=>{
+if(!d[c[0]])return;
+const gg=giorniDaOggi(d[c[0]]);
+if(gg!==null&&gg<=30){
+el.push({tipo:'G',tipoNome:'Allegato G - Defibrillatori',id:d.id,luogo:d.luogo||'',materiale:c[1],qta:1,data:d[c[0]],giorni:gg});
+}
+});
+});
+el.sort((x,y)=>x.giorni-y.giorni);
+return el;
+}
 function contaScadenze30(){
-let totale=0;
-[...DB.infermeria,...DB.cassette,...DB.pacchetti].forEach(allegato=>{
-if(allegato.materiali){
-allegato.materiali.forEach(m=>{
-if((m.richiesta||0)>0){
-totale++;
+return elencoScadenzeDashboard().length;
 }
+function escDash(t){
+return String(t==null?'':t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+function vaiAPresidio(tipo,id){
+if(tipo==='G'){
+showPage('allegatoGPage');
+apriAllegatoG(id);
+return;
+}
+showPage('allegato'+tipo+'Page');
+({B:apriAllegatoB,C:apriAllegatoC,D:apriAllegatoD})[tipo](id);
+({B:apriPresidiB,C:apriPresidiC,D:apriPresidiD})[tipo](id);
+window.scrollTo(0,0);
+}
+function renderScadenzeDashboard(){
+const box=document.getElementById('dashScadenze');
+if(!box)return;
+const el=elencoScadenzeDashboard();
+const scaduti=el.filter(x=>x.giorni<0);
+const inScad=el.filter(x=>x.giorni>=0);
+function tabella(titolo,lista,colore,testo){
+if(!lista.length)return '';
+let h='<div class="subTitle" style="margin-top:20px">'+titolo+' ('+lista.length+')</div>'+
+'<div style="overflow-x:auto"><table><tr><th>Allegato</th><th>Luogo</th><th>Presidio</th><th>Q.tà</th><th>Scadenza</th><th>Stato</th><th></th></tr>';
+lista.forEach(x=>{
+let stato=x.giorni<0?('Scaduto da '+Math.abs(x.giorni)+(Math.abs(x.giorni)===1?' giorno':' giorni')):(x.giorni===0?'Scade oggi':('Scade tra '+x.giorni+(x.giorni===1?' giorno':' giorni')));
+h+='<tr><td>'+escDash(x.tipoNome)+'</td><td>'+escDash(x.luogo)+'</td><td style="text-align:left">'+escDash(x.materiale)+'</td><td>'+escDash(x.qta)+'</td><td>'+formatoData(x.data)+'</td>'+
+'<td style="background:'+colore+';font-weight:bold">'+stato+'</td>'+
+'<td><button class="btnApri" onclick="vaiAPresidio(\''+x.tipo+'\','+x.id+')">Apri</button></td></tr>';
 });
+return h+'</table></div>';
 }
-});
-DB.defibrillatori.forEach(dae=>{
-if(dae.batteria){
-let giorni=Math.floor(
-(new Date(dae.batteria)-new Date())/(1000*60*60*24)
-);
-if(giorni<=30){
-totale++;
+if(!el.length){
+box.innerHTML='<div class="alertVerde" style="color:#0a3d1f">✔ Nessun presidio scaduto o in scadenza entro 30 giorni.</div>';
+return;
 }
-}
-if(dae.elettrodi){
-let giorni=Math.floor(
-(new Date(dae.elettrodi)-new Date())/(1000*60*60*24)
-);
-if(giorni<=30){
-totale++;
-}
-}
-});
-return totale;
+box.innerHTML=tabella('🔴 Presidi scaduti',scaduti,'rgba(214,69,90,.55)')+tabella('🟠 In scadenza entro 30 giorni',inScad,'rgba(255,153,0,.45)');
 }
 function aggiornaDashboard(){
 let totaleAllegati=
@@ -303,7 +359,9 @@ totalePresidi+=allegato.materiali.length;
 });
 document.getElementById("tot60").innerHTML=totaleAllegati;
 document.getElementById("totPresidi").innerHTML=totalePresidi;
-document.getElementById("tot30").innerHTML=contaScadenze30();
+document.getElementById("tot30").innerHTML=elencoScadenzeDashboard().filter(x=>x.giorni>=0).length;
+document.getElementById("tot0").innerHTML=elencoScadenzeDashboard().filter(x=>x.giorni<0).length;
+renderScadenzeDashboard();
 }
 function formatoData(data){
 if(!data)return '';
